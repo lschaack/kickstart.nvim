@@ -1,5 +1,29 @@
--- You can add your own plugins here or in other files in this directory!
---  I promise not to create any merge conflicts in this directory :)
---
--- See the kickstart.nvim README for more information
-return {}
+vim.opt.expandtab = true
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+
+return {
+  {
+    'pmizio/typescript-tools.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+    opts = {
+      settings = {
+        tsserver_file_preferences = {
+          quotePreferences = 'single',
+        },
+      },
+    },
+  },
+  {
+    'mikesmithgh/kitty-scrollback.nvim',
+    enabled = true,
+    lazy = true,
+    cmd = { 'KittyScrollbackGenerateKittens', 'KittyScrollbackCheckHealth', 'KittyScrollbackGenerateCommandLineEditing' },
+    event = { 'User KittyScrollbackLaunch' },
+    -- version = '*', -- latest stable version, may have breaking changes if major version changed
+    -- version = '^6.0.0', -- pin major version, include fixes and features that do not have breaking changes
+    config = function()
+      require('kitty-scrollback').setup()
+    end,
+  },
+}

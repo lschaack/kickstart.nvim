@@ -13,4 +13,5 @@ return {
     local cmp = require 'cmp'
     cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
   end,
+  lazy = false,
 }
