@@ -3,6 +3,7 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
 require 'custom.plugins.ts-actions'
+require 'custom.plugins.blink'
 
 return {
   'mg979/vim-visual-multi',
