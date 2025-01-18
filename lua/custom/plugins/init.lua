@@ -2,7 +2,10 @@ vim.opt.expandtab = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
+require 'custom.plugins.ts-actions'
+
 return {
+  'mg979/vim-visual-multi',
   {
     'pmizio/typescript-tools.nvim',
     dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },

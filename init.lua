@@ -409,7 +409,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       vim.keymap.set(
         'n',
-        '<leader>sf',
+        '<leader>sa',
         "<cmd>lua require'telescope.builtin'.find_files({ find_command = {'rg', '--file', '--hidden', '-g', '!.git' }})<cr>",
         { desc = '[S]earch [A]ll [F]iles' }
       )
@@ -651,6 +651,15 @@ require('lazy').setup({
             },
           },
         },
+
+        eslint = {
+          on_attach = function(_, bufnr)
+            vim.api.nvim_create_autocmd('BufWritePre', {
+              buffer = bufnr,
+              command = 'EslintFixAll',
+            })
+          end,
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -669,6 +678,7 @@ require('lazy').setup({
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
+      ---@diagnostic disable-next-line: missing-fields
       require('mason-lspconfig').setup {
         handlers = {
           function(server_name)
@@ -680,6 +690,15 @@ require('lazy').setup({
             require('lspconfig')[server_name].setup(server)
           end,
         },
+      }
+
+      -- configure LSPs not managed by Mason
+      require('lspconfig').gdscript.setup {
+        name = 'Godot',
+        cmd = vim.lsp.rpc.connect('127.0.0.1', 6005),
+        on_attach = function()
+          vim.api.nvim_command 'echo serverstart("/tmp/godot.pipe")'
+        end,
       }
     end,
   },
@@ -937,7 +956,7 @@ require('lazy').setup({
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
