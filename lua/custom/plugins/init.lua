@@ -5,6 +5,8 @@ vim.opt.shiftwidth = 2
 require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
+vim.keymap.set('n', '<leader><tab>', '<c-^><cr>', { desc = '[B]ack' })
+
 return {
   'mg979/vim-visual-multi',
   {
@@ -28,6 +30,17 @@ return {
     -- version = '^6.0.0', -- pin major version, include fixes and features that do not have breaking changes
     config = function()
       require('kitty-scrollback').setup()
+    end,
+  },
+  {
+    'ckolkey/ts-node-action',
+    dependencies = { 'nvim-treesitter' },
+    opts = {},
+    config = function()
+      vim.keymap.set({ 'n' }, '<leader>cf', require('ts-node-action').node_action, { desc = 'Trigger Node Action' })
+      require('ts-node-action').setup {
+        tsx = require 'ts-node-action.filetypes.javascript',
+      }
     end,
   },
 }
