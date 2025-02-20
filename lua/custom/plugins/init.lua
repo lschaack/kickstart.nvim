@@ -43,4 +43,12 @@ return {
       }
     end,
   },
+  {
+    dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/github-url',
+    nam = 'github-url',
+    lazy = false,
+    config = function()
+      vim.api.nvim_set_keymap('n', '<leader>gu', "<cmd>lua require('github_url').copy_github_url()<CR>", { noremap = true, silent = true })
+    end,
+  },
 }
