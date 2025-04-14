@@ -45,10 +45,60 @@ return {
   },
   {
     dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/github-url',
-    nam = 'github-url',
+    name = 'github-url',
     lazy = false,
     config = function()
       vim.api.nvim_set_keymap('n', '<leader>gu', "<cmd>lua require('github_url').copy_github_url()<CR>", { noremap = true, silent = true })
+    end,
+  },
+  {
+    dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/scope-navigation',
+    name = 'scope-navigation',
+    lazy = false,
+    config = function()
+      require('scope_navigation').setup {
+        keymap = {
+          prev = '˙',
+          next = '¬',
+          in_scope = '∆',
+          out_scope = '˚',
+        },
+
+        -- Add custom navigable nodes for specific languages
+        language_nodes = {
+          typescript = {
+            'object',
+            'array',
+            'ternary_expression',
+          },
+        },
+
+        -- Custom logic for determining navigable nodes
+        node_matcher = function(node)
+          -- Example: Treat any node with 'expression' in its type as navigable
+          local node_type = node:type()
+          return string.match(node_type, 'expression') ~= nil
+        end,
+
+        -- Visual feedback settings
+        visual = {
+          highlight_node = true,
+          highlight_duration_ms = 500,
+          highlight_group = 'Search',
+        },
+
+        -- Uncomment to enable debug mode
+        debug = true,
+      }
+    end,
+  },
+  {
+    'github/copilot.vim',
+    event = 'InsertEnter',
+    config = function()
+      -- Set custom keybindings for Copilot suggestions
+      vim.api.nvim_set_keymap('i', '<M-PageDown>', '<Cmd>CopilotNext<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('i', '<M-PageUp>', '<Cmd>CopilotPrev<CR>', { noremap = true, silent = true })
     end,
   },
 }
