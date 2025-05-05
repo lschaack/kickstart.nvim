@@ -75,16 +75,17 @@ return {
 
         -- Custom logic for determining navigable nodes
         node_matcher = function(node)
-          -- Example: Treat any node with 'expression' in its type as navigable
-          local node_type = node:type()
-          return string.match(node_type, 'expression') ~= nil
+          return true
+          -- -- Example: Treat any node with 'expression' in its type as navigable
+          -- local node_type = node:type()
+          -- return string.match(node_type, 'expression') ~= nil
         end,
 
         -- Visual feedback settings
-        visual = {
-          highlight_node = true,
-          highlight_duration_ms = 500,
-          highlight_group = 'Search',
+        tree_visualization = {
+          max_depth = 25, -- Show deeper nodes
+          show_unnamed_nodes = true, -- Include unnamed nodes
+          max_node_length = 40, -- Show longer text previews
         },
 
         -- Uncomment to enable debug mode
