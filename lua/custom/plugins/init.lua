@@ -6,6 +6,12 @@ require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
 vim.keymap.set('n', '<leader><tab>', '<c-^><cr>', { desc = '[B]ack' })
+vim.keymap.set(
+  'n',
+  'ƒ', -- option + f
+  'f r<enter>^',
+  { desc = 'Break on next space' }
+)
 
 return {
   'mg979/vim-visual-multi',
@@ -51,55 +57,67 @@ return {
       vim.api.nvim_set_keymap('n', '<leader>gu', "<cmd>lua require('github_url').copy_github_url()<CR>", { noremap = true, silent = true })
     end,
   },
+  -- {
+  --   dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/scope-navigation',
+  --   name = 'scope-navigation',
+  --   lazy = false,
+  --   config = function()
+  --     require('scope_navigation').setup {
+  --       keymap = {
+  --         prev = '˚',
+  --         next = '∆',
+  --         in_scope = '¬',
+  --         out_scope = '˙',
+  --         visualize = '√',
+  --       },
+  --
+  --       -- Add custom navigable nodes for specific languages
+  --       language_nodes = {
+  --         typescript = {
+  --           'object',
+  --           'array',
+  --           'ternary_expression',
+  --         },
+  --       },
+  --
+  --       -- Custom logic for determining navigable nodes
+  --       node_matcher = function(node)
+  --         return true
+  --         -- -- Example: Treat any node with 'expression' in its type as navigable
+  --         -- local node_type = node:type()
+  --         -- return string.match(node_type, 'expression') ~= nil
+  --       end,
+  --
+  --       -- Visual feedback settings
+  --       tree_visualization = {
+  --         max_depth = 25, -- Show deeper nodes
+  --         show_unnamed_nodes = true, -- Include unnamed nodes
+  --         max_node_length = 40, -- Show longer text previews
+  --       },
+  --
+  --       -- Uncomment to enable debug mode
+  --       debug = true,
+  --     }
+  --   end,
+  -- },
   {
-    dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/scope-navigation',
-    name = 'scope-navigation',
-    lazy = false,
-    config = function()
-      require('scope_navigation').setup {
-        keymap = {
-          prev = '˙',
-          next = '¬',
-          in_scope = '∆',
-          out_scope = '˚',
-        },
-
-        -- Add custom navigable nodes for specific languages
-        language_nodes = {
-          typescript = {
-            'object',
-            'array',
-            'ternary_expression',
-          },
-        },
-
-        -- Custom logic for determining navigable nodes
-        node_matcher = function(node)
-          return true
-          -- -- Example: Treat any node with 'expression' in its type as navigable
-          -- local node_type = node:type()
-          -- return string.match(node_type, 'expression') ~= nil
-        end,
-
-        -- Visual feedback settings
-        tree_visualization = {
-          max_depth = 25, -- Show deeper nodes
-          show_unnamed_nodes = true, -- Include unnamed nodes
-          max_node_length = 40, -- Show longer text previews
-        },
-
-        -- Uncomment to enable debug mode
-        debug = true,
-      }
-    end,
-  },
-  {
-    'github/copilot.vim',
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot',
     event = 'InsertEnter',
     config = function()
-      -- Set custom keybindings for Copilot suggestions
-      vim.api.nvim_set_keymap('i', '<M-PageDown>', '<Cmd>CopilotNext<CR>', { noremap = true, silent = true })
-      vim.api.nvim_set_keymap('i', '<M-PageUp>', '<Cmd>CopilotPrev<CR>', { noremap = true, silent = true })
+      require('copilot').setup {
+        suggestion = {
+          enabled = true,
+          auto_trigger = false,
+          keymap = {
+            accept_word = false,
+            accept_line = false,
+            accept = '«', -- option+\
+            next = '‘', -- option+]
+            prev = '“', -- option+[
+          },
+        },
+      }
     end,
   },
 }
