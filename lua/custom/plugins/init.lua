@@ -21,7 +21,8 @@ return {
     opts = {
       settings = {
         tsserver_file_preferences = {
-          quotePreferences = 'single',
+          importModuleSpecifier = 'non-relative',
+          quotePreference = 'auto',
         },
       },
     },

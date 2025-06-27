@@ -386,6 +386,7 @@ require('lazy').setup({
             i = { ['<c-enter>'] = 'to_fuzzy_refine' },
           },
           path_display = { 'filename_first' },
+          layout_strategy = 'vertical',
         },
         pickers = {
           buffers = {
@@ -470,8 +471,18 @@ require('lazy').setup({
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
-      'williamboman/mason-lspconfig.nvim',
+      {
+        'williamboman/mason.nvim',
+        config = true,
+        -- FIXME: https://github.com/LazyVim/LazyVim/issues/6039#issuecomment-2856227817
+        -- version pinned b/c/o temporary bug w/Mason
+        version = '^1.0.0',
+      }, -- NOTE: Must be loaded before dependants
+      {
+        'williamboman/mason-lspconfig.nvim',
+        -- FIXME: ^^^
+        version = '^1.0.0',
+      },
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
