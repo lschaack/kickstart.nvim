@@ -16,8 +16,34 @@ vim.keymap.set(
   'c',
   '®', -- option + r
   's/<C-r>0//g<Left><Left>',
-  { desc = 'Break on next space' }
+  { desc = '[R]eplace the contents of the default register' }
 )
+vim.keymap.set(
+  'n',
+  '∆', -- option + j
+  '<cmd>cnext<CR>',
+  { desc = 'Go to next quickfix item' }
+)
+vim.keymap.set(
+  'n',
+  '˚', -- option + k
+  '<cmd>cprev<CR>',
+  { desc = 'Go to previous quickfix item' }
+)
+
+vim.api.nvim_create_autocmd('TermOpen', {
+  group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
+  callback = function()
+    vim.opt.number = false
+    vim.opt.relativenumber = false
+  end,
+})
+vim.keymap.set('n', '<space>st', function()
+  vim.cmd.vnew()
+  vim.cmd.term()
+  vim.cmd.wincmd 'J'
+  vim.api.nvim_win_set_height(0, 15)
+end)
 
 return {
   'mg979/vim-visual-multi',
