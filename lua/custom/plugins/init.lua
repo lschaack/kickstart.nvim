@@ -12,6 +12,12 @@ vim.keymap.set(
   'f r<enter>^',
   { desc = 'Break on next space' }
 )
+vim.keymap.set(
+  'c',
+  '®', -- option + r
+  's/<C-r>0//g<Left><Left>',
+  { desc = 'Break on next space' }
+)
 
 return {
   'mg979/vim-visual-multi',

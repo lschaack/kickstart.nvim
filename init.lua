@@ -383,7 +383,13 @@ require('lazy').setup({
         --
         defaults = {
           mappings = {
-            i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+            i = {
+              ['<c-enter>'] = 'to_fuzzy_refine',
+              ['<C-q>'] = require('telescope.actions').smart_send_to_qflist + require('telescope.actions').open_qflist,
+            },
+            n = {
+              ['<C-q>'] = require('telescope.actions').smart_send_to_qflist + require('telescope.actions').open_qflist,
+            },
           },
           path_display = { 'filename_first' },
           layout_strategy = 'vertical',
@@ -683,6 +689,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(opts.servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'prettier', -- Used to format SVG and other files
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -752,11 +759,26 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        svg = { 'prettier' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      },
+      formatters = {
+        prettier = {
+          args = {
+            '--stdin-filepath',
+            '$FILENAME',
+            '--parser',
+            'html',
+            '--print-width',
+            '80',
+            '--html-whitespace-sensitivity',
+            'ignore',
+          },
+        },
       },
     },
   },
