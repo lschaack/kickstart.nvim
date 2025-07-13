@@ -72,10 +72,10 @@ function M.setup(opts)
   end
 
   -- Set up keymaps
-  vim.keymap.set('n', M.config.keymaps.move_down, M.move_down, { desc = 'Lemur: Move to next sibling or parent' })
-  vim.keymap.set('n', M.config.keymaps.move_up, M.move_up, { desc = 'Lemur: Move to previous sibling or parent' })
-  vim.keymap.set('n', M.config.keymaps.move_right, M.move_right, { desc = 'Lemur: Move to child or next sibling up tree' })
-  vim.keymap.set('n', M.config.keymaps.move_left, M.move_left, { desc = 'Lemur: Move to parent node' })
+  vim.keymap.set('n', M.config.keymaps.move_down, M.move_down, { desc = 'Lemur: Move to next node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_up, M.move_up, { desc = 'Lemur: Move to previous node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_right, M.move_right, { desc = 'Lemur: Move to next node in post-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_left, M.move_left, { desc = 'Lemur: Move to previous node in post-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -300,6 +300,145 @@ local function find_next_sibling_up_tree(node)
   return nil
 end
 
+local function get_tree_root()
+  local ts = vim.treesitter
+  local parser = ts.get_parser(0)
+  if not parser then
+    return nil
+  end
+
+  local tree = parser:parse()[1]
+  if not tree then
+    return nil
+  end
+
+  return tree:root()
+end
+
+local function collect_all_nodes(root)
+  local nodes = {}
+  
+  local function traverse(node)
+    if node:named() then
+      table.insert(nodes, node)
+    end
+    
+    for child in node:iter_children() do
+      traverse(child)
+    end
+  end
+  
+  if root then
+    traverse(root)
+  end
+  
+  return nodes
+end
+
+local function get_next_preorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i < #all_nodes then
+      return all_nodes[i + 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_prev_preorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i > 1 then
+      return all_nodes[i - 1]
+    end
+  end
+  
+  return nil
+end
+
+local function collect_all_nodes_postorder(root)
+  local nodes = {}
+  
+  local function traverse(node)
+    for child in node:iter_children() do
+      traverse(child)
+    end
+    
+    if node:named() then
+      table.insert(nodes, node)
+    end
+  end
+  
+  if root then
+    traverse(root)
+  end
+  
+  return nodes
+end
+
+local function get_next_postorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_postorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i < #all_nodes then
+      return all_nodes[i + 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_prev_postorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_postorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i > 1 then
+      return all_nodes[i - 1]
+    end
+  end
+  
+  return nil
+end
+
 function M.move_down()
   local node = get_cursor_node()
   if not node then
@@ -308,19 +447,13 @@ function M.move_down()
   end
 
   local current_info = get_node_info(node)
-  local next_sibling = get_next_sibling(node)
-  if next_sibling then
-    local target_info = get_node_info(next_sibling)
-    log_action('move_down', 'found next sibling', current_info .. ' -> ' .. target_info)
-    set_cursor_to_node(next_sibling)
+  local next_node = get_next_preorder(node)
+  if next_node then
+    local target_info = get_node_info(next_node)
+    log_action('move_down', 'next node in pre-order traversal', current_info .. ' -> ' .. target_info)
+    set_cursor_to_node(next_node)
   else
-    if move_to_parent_with_fallback(node) then
-      local new_node = get_cursor_node()
-      local target_info = get_node_info(new_node)
-      log_action('move_down', 'no next sibling, moved to parent/fallback', current_info .. ' -> ' .. target_info)
-    else
-      log_action('move_down', 'no next sibling and no viable parent move', current_info)
-    end
+    log_action('move_down', 'no next node in pre-order traversal', current_info)
   end
 end
 
@@ -332,19 +465,13 @@ function M.move_up()
   end
 
   local current_info = get_node_info(node)
-  local prev_sibling = get_prev_sibling(node)
-  if prev_sibling then
-    local target_info = get_node_info(prev_sibling)
-    log_action('move_up', 'found previous sibling', current_info .. ' -> ' .. target_info)
-    set_cursor_to_node(prev_sibling)
+  local prev_node = get_prev_preorder(node)
+  if prev_node then
+    local target_info = get_node_info(prev_node)
+    log_action('move_up', 'previous node in pre-order traversal', current_info .. ' -> ' .. target_info)
+    set_cursor_to_node(prev_node)
   else
-    if move_to_parent_with_fallback(node) then
-      local new_node = get_cursor_node()
-      local target_info = get_node_info(new_node)
-      log_action('move_up', 'no previous sibling, moved to parent/fallback', current_info .. ' -> ' .. target_info)
-    else
-      log_action('move_up', 'no previous sibling and no viable parent move', current_info)
-    end
+    log_action('move_up', 'no previous node in pre-order traversal', current_info)
   end
 end
 
@@ -356,20 +483,13 @@ function M.move_right()
   end
 
   local current_info = get_node_info(node)
-  local first_child = get_first_child(node)
-  if first_child then
-    local target_info = get_node_info(first_child)
-    log_action('move_right', 'found first child', current_info .. ' -> ' .. target_info)
-    set_cursor_to_node(first_child)
+  local next_node = get_next_postorder(node)
+  if next_node then
+    local target_info = get_node_info(next_node)
+    log_action('move_right', 'next node in post-order traversal', current_info .. ' -> ' .. target_info)
+    set_cursor_to_node(next_node)
   else
-    local next_sibling = find_next_sibling_up_tree(node)
-    if next_sibling then
-      local target_info = get_node_info(next_sibling)
-      log_action('move_right', 'no child, found next sibling up tree', current_info .. ' -> ' .. target_info)
-      set_cursor_to_node(next_sibling)
-    else
-      log_action('move_right', 'no child and no next sibling up tree', current_info)
-    end
+    log_action('move_right', 'no next node in post-order traversal', current_info)
   end
 end
 
@@ -381,12 +501,13 @@ function M.move_left()
   end
 
   local current_info = get_node_info(node)
-  if move_to_parent_with_fallback(node) then
-    local new_node = get_cursor_node()
-    local target_info = get_node_info(new_node)
-    log_action('move_left', 'moved to parent/fallback', current_info .. ' -> ' .. target_info)
+  local prev_node = get_prev_postorder(node)
+  if prev_node then
+    local target_info = get_node_info(prev_node)
+    log_action('move_left', 'previous node in post-order traversal', current_info .. ' -> ' .. target_info)
+    set_cursor_to_node(prev_node)
   else
-    log_action('move_left', 'no viable parent move', current_info)
+    log_action('move_left', 'no previous node in post-order traversal', current_info)
   end
 end
 
