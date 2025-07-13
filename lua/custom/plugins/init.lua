@@ -19,17 +19,24 @@ vim.keymap.set(
   { desc = '[R]eplace the contents of the default register' }
 )
 vim.keymap.set(
-  'n',
-  '∆', -- option + j
-  '<cmd>cnext<CR>',
-  { desc = 'Go to next quickfix item' }
+  { 'n', 'v' },
+  '®', -- option + r
+  ':s/<C-r>0//g<Left><Left>',
+  { desc = '[R]eplace the contents of the default register' }
 )
-vim.keymap.set(
-  'n',
-  '˚', -- option + k
-  '<cmd>cprev<CR>',
-  { desc = 'Go to previous quickfix item' }
-)
+vim.keymap.set('n', '<leader>jk', "oconsole.log('<C-o>p', <C-o>p)<esc>", { desc = 'Paste last yanked text [j]s style' })
+-- vim.keymap.set(
+--   'n',
+--   '∆', -- option + j
+--   '<cmd>cnext<CR>',
+--   { desc = 'Go to next quickfix item' }
+-- )
+-- vim.keymap.set(
+--   'n',
+--   '˚', -- option + k
+--   '<cmd>cprev<CR>',
+--   { desc = 'Go to previous quickfix item' }
+-- )
 
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
@@ -89,6 +96,20 @@ return {
     config = function()
       vim.api.nvim_set_keymap('n', '<leader>gu', "<cmd>lua require('github_url').copy_github_url()<CR>", { noremap = true, silent = true })
     end,
+  },
+  {
+    dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/lemur',
+    name = 'lemur',
+    lazy = false,
+    opts = {
+      keymaps = {
+        move_down = '∆', -- option + j
+        move_up = '˚', -- option + k
+        move_right = '¬', -- option + l
+        move_left = '˙', -- option + h
+      },
+      debug = true,
+    },
   },
   -- {
   --   dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/scope-navigation',
