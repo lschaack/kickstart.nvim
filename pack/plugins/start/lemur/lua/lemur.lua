@@ -74,8 +74,8 @@ function M.setup(opts)
   -- Set up keymaps
   vim.keymap.set('n', M.config.keymaps.move_down, M.move_down, { desc = 'Lemur: Move to next node in pre-order traversal' })
   vim.keymap.set('n', M.config.keymaps.move_up, M.move_up, { desc = 'Lemur: Move to previous node in pre-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_right, M.move_right, { desc = 'Lemur: Move to next node in post-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_left, M.move_left, { desc = 'Lemur: Move to previous node in post-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_right, M.move_right, { desc = 'Lemur: Move to next node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_left, M.move_left, { desc = 'Lemur: Move to previous node in level-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -377,27 +377,32 @@ local function get_prev_preorder(current_node)
   return nil
 end
 
-local function collect_all_nodes_postorder(root)
+local function collect_all_nodes_levelorder(root)
   local nodes = {}
   
-  local function traverse(node)
-    for child in node:iter_children() do
-      traverse(child)
-    end
-    
-    if node:named() then
-      table.insert(nodes, node)
-    end
+  if not root then
+    return nodes
   end
   
-  if root then
-    traverse(root)
+  local queue = {}
+  table.insert(queue, root)
+  
+  while #queue > 0 do
+    local current = table.remove(queue, 1)
+    
+    if current:named() then
+      table.insert(nodes, current)
+    end
+    
+    for child in current:iter_children() do
+      table.insert(queue, child)
+    end
   end
   
   return nodes
 end
 
-local function get_next_postorder(current_node)
+local function get_next_levelorder(current_node)
   if not current_node then
     return nil
   end
@@ -407,7 +412,7 @@ local function get_next_postorder(current_node)
     return nil
   end
 
-  local all_nodes = collect_all_nodes_postorder(root)
+  local all_nodes = collect_all_nodes_levelorder(root)
   
   for i, node in ipairs(all_nodes) do
     if nodes_equal(node, current_node) and i < #all_nodes then
@@ -418,7 +423,7 @@ local function get_next_postorder(current_node)
   return nil
 end
 
-local function get_prev_postorder(current_node)
+local function get_prev_levelorder(current_node)
   if not current_node then
     return nil
   end
@@ -428,7 +433,7 @@ local function get_prev_postorder(current_node)
     return nil
   end
 
-  local all_nodes = collect_all_nodes_postorder(root)
+  local all_nodes = collect_all_nodes_levelorder(root)
   
   for i, node in ipairs(all_nodes) do
     if nodes_equal(node, current_node) and i > 1 then
@@ -483,13 +488,13 @@ function M.move_right()
   end
 
   local current_info = get_node_info(node)
-  local next_node = get_next_postorder(node)
+  local next_node = get_next_levelorder(node)
   if next_node then
     local target_info = get_node_info(next_node)
-    log_action('move_right', 'next node in post-order traversal', current_info .. ' -> ' .. target_info)
+    log_action('move_right', 'next node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(next_node)
   else
-    log_action('move_right', 'no next node in post-order traversal', current_info)
+    log_action('move_right', 'no next node in level-order traversal', current_info)
   end
 end
 
@@ -501,13 +506,13 @@ function M.move_left()
   end
 
   local current_info = get_node_info(node)
-  local prev_node = get_prev_postorder(node)
+  local prev_node = get_prev_levelorder(node)
   if prev_node then
     local target_info = get_node_info(prev_node)
-    log_action('move_left', 'previous node in post-order traversal', current_info .. ' -> ' .. target_info)
+    log_action('move_left', 'previous node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(prev_node)
   else
-    log_action('move_left', 'no previous node in post-order traversal', current_info)
+    log_action('move_left', 'no previous node in level-order traversal', current_info)
   end
 end
 
