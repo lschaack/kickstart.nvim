@@ -51,6 +51,18 @@ vim.keymap.set('n', '<space>st', function()
   vim.cmd.wincmd 'J'
   vim.api.nvim_win_set_height(0, 15)
 end)
+vim.keymap.set(
+  'n',
+  'ç', -- option + c
+  'vBgUE',
+  { desc = '[C]apitalize last typed word' }
+)
+vim.keymap.set(
+  'i',
+  'ç', -- option + c
+  '<esc>vBgUEa',
+  { desc = '[C]apitalize last typed word' }
+)
 
 return {
   'mg979/vim-visual-multi',
