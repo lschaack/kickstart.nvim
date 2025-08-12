@@ -15,6 +15,10 @@ M.config = {
     move_prev_levelorder = '<M-h>',
     move_next_preorder_same_type = '<M-S-j>',
     move_prev_preorder_same_type = '<M-S-k>',
+    move_next_preorder_different_line = '<M-C-j>',
+    move_prev_preorder_different_line = '<M-C-k>',
+    move_next_preorder_same_type_different_line = '<M-C-S-j>',
+    move_prev_preorder_same_type_different_line = '<M-C-S-k>',
   },
   highlight = {
     enabled = false,
@@ -146,6 +150,10 @@ function M.setup(opts)
   vim.keymap.set('n', M.config.keymaps.move_prev_levelorder, M.move_prev_levelorder, { desc = 'Lemur: Move to previous node in level-order traversal' })
   vim.keymap.set('n', M.config.keymaps.move_next_preorder_same_type, M.move_next_preorder_same_type, { desc = 'Lemur: Move to next node of same type in pre-order traversal' })
   vim.keymap.set('n', M.config.keymaps.move_prev_preorder_same_type, M.move_prev_preorder_same_type, { desc = 'Lemur: Move to previous node of same type in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_preorder_different_line, M.move_next_preorder_different_line, { desc = 'Lemur: Move to next node on different line in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_preorder_different_line, M.move_prev_preorder_different_line, { desc = 'Lemur: Move to previous node on different line in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_preorder_same_type_different_line, M.move_next_preorder_same_type_different_line, { desc = 'Lemur: Move to next node of same type on different line in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_preorder_same_type_different_line, M.move_prev_preorder_same_type_different_line, { desc = 'Lemur: Move to previous node of same type on different line in pre-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -448,11 +456,11 @@ local function get_reachable_nodes(function_name)
     return {}
   end
   
-  if function_name == 'move_next_preorder' or function_name == 'move_prev_preorder' then
+  if function_name == 'move_next_preorder' or function_name == 'move_prev_preorder' or function_name == 'move_next_preorder_different_line' or function_name == 'move_prev_preorder_different_line' then
     return collect_all_nodes(root)
   elseif function_name == 'move_next_levelorder' or function_name == 'move_prev_levelorder' then
     return collect_all_nodes_levelorder(root)
-  elseif function_name == 'move_next_preorder_same_type' or function_name == 'move_prev_preorder_same_type' then
+  elseif function_name == 'move_next_preorder_same_type' or function_name == 'move_prev_preorder_same_type' or function_name == 'move_next_preorder_same_type_different_line' or function_name == 'move_prev_preorder_same_type_different_line' then
     local current_node = get_cursor_node()
     if current_node then
       return collect_nodes_by_type(root, current_node:type())
@@ -813,6 +821,202 @@ function M.move_prev_preorder_same_type()
   end
   
   log_action('move_prev_preorder_same_type', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
+end
+
+function M.move_next_preorder_different_line()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_next_preorder_different_line', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row = initial_cursor[1] - 1
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 50 -- Higher limit since we're filtering by line
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local next_node = get_next_preorder(current_node)
+    if not next_node then
+      log_action('move_next_preorder_different_line', 'no next node in pre-order traversal', current_info)
+      return
+    end
+    
+    local next_start_row, _ = next_node:start()
+    
+    -- If the next node starts on a different line, move there
+    if next_start_row ~= initial_row then
+      local target_info = get_node_info(next_node)
+      log_action('move_next_preorder_different_line', 'found node on different line after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(next_node)
+      
+      -- Highlight reachable nodes
+      local reachable = get_reachable_nodes('move_next_preorder_different_line')
+      highlight_nodes_with_auto_clear(reachable, 'move_next_preorder_different_line')
+      return
+    end
+    
+    -- Continue to the next node
+    current_node = next_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_next_preorder_different_line', 'reached max attempts without finding different line', current_info)
+end
+
+function M.move_prev_preorder_different_line()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_prev_preorder_different_line', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row = initial_cursor[1] - 1
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 50 -- Higher limit since we're filtering by line
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local prev_node = get_prev_preorder(current_node)
+    if not prev_node then
+      log_action('move_prev_preorder_different_line', 'no previous node in pre-order traversal', current_info)
+      return
+    end
+    
+    local prev_start_row, _ = prev_node:start()
+    
+    -- If the previous node starts on a different line, move there
+    if prev_start_row ~= initial_row then
+      local target_info = get_node_info(prev_node)
+      log_action('move_prev_preorder_different_line', 'found node on different line after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(prev_node)
+      
+      -- Highlight reachable nodes
+      local reachable = get_reachable_nodes('move_prev_preorder_different_line')
+      highlight_nodes_with_auto_clear(reachable, 'move_prev_preorder_different_line')
+      return
+    end
+    
+    -- Continue to the previous node
+    current_node = prev_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_prev_preorder_different_line', 'reached max attempts without finding different line', current_info)
+end
+
+function M.move_next_preorder_same_type_different_line()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_next_preorder_same_type_different_line', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row = initial_cursor[1] - 1
+  local target_type = node:type()
+  local current_info = get_node_info(node)
+  
+  local root = get_tree_root()
+  if not root then
+    log_action('move_next_preorder_same_type_different_line', 'no tree root found', current_info)
+    return
+  end
+
+  -- Get all nodes of the same type in preorder
+  local same_type_nodes = collect_nodes_by_type(root, target_type)
+  
+  if #same_type_nodes == 0 then
+    log_action('move_next_preorder_same_type_different_line', 'no nodes of type found', current_info .. ' (type: ' .. target_type .. ')')
+    return
+  end
+  
+  -- Find the current node in the list and get the next one on a different line
+  for i, same_node in ipairs(same_type_nodes) do
+    if nodes_equal(same_node, node) then
+      -- Look for the next node on a different line
+      for j = i + 1, #same_type_nodes do
+        local candidate = same_type_nodes[j]
+        local candidate_row, _ = candidate:start()
+        
+        if candidate_row ~= initial_row then
+          local target_info = get_node_info(candidate)
+          log_action('move_next_preorder_same_type_different_line', 'found next same type node on different line', current_info .. ' -> ' .. target_info)
+          set_cursor_to_node(candidate)
+          
+          -- Highlight reachable nodes
+          local reachable = get_reachable_nodes('move_next_preorder_same_type_different_line')
+          highlight_nodes_with_auto_clear(reachable, 'move_next_preorder_same_type_different_line')
+          return
+        end
+      end
+      
+      log_action('move_next_preorder_same_type_different_line', 'no next same type node on different line', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+  end
+  
+  log_action('move_next_preorder_same_type_different_line', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
+end
+
+function M.move_prev_preorder_same_type_different_line()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_prev_preorder_same_type_different_line', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row = initial_cursor[1] - 1
+  local target_type = node:type()
+  local current_info = get_node_info(node)
+  
+  local root = get_tree_root()
+  if not root then
+    log_action('move_prev_preorder_same_type_different_line', 'no tree root found', current_info)
+    return
+  end
+
+  -- Get all nodes of the same type in preorder
+  local same_type_nodes = collect_nodes_by_type(root, target_type)
+  
+  if #same_type_nodes == 0 then
+    log_action('move_prev_preorder_same_type_different_line', 'no nodes of type found', current_info .. ' (type: ' .. target_type .. ')')
+    return
+  end
+  
+  -- Find the current node in the list and get the previous one on a different line
+  for i, same_node in ipairs(same_type_nodes) do
+    if nodes_equal(same_node, node) then
+      -- Look for the previous node on a different line
+      for j = i - 1, 1, -1 do
+        local candidate = same_type_nodes[j]
+        local candidate_row, _ = candidate:start()
+        
+        if candidate_row ~= initial_row then
+          local target_info = get_node_info(candidate)
+          log_action('move_prev_preorder_same_type_different_line', 'found previous same type node on different line', current_info .. ' -> ' .. target_info)
+          set_cursor_to_node(candidate)
+          
+          -- Highlight reachable nodes
+          local reachable = get_reachable_nodes('move_prev_preorder_same_type_different_line')
+          highlight_nodes_with_auto_clear(reachable, 'move_prev_preorder_same_type_different_line')
+          return
+        end
+      end
+      
+      log_action('move_prev_preorder_same_type_different_line', 'no previous same type node on different line', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+  end
+  
+  log_action('move_prev_preorder_same_type_different_line', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
 end
 
 return M
