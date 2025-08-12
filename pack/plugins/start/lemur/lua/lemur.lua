@@ -72,10 +72,10 @@ function M.setup(opts)
   end
 
   -- Set up keymaps
-  vim.keymap.set('n', M.config.keymaps.move_down, M.move_down, { desc = 'Lemur: Move to next node in pre-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_up, M.move_up, { desc = 'Lemur: Move to previous node in pre-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_right, M.move_right, { desc = 'Lemur: Move to next node in level-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_left, M.move_left, { desc = 'Lemur: Move to previous node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_down, M.move_next_preorder, { desc = 'Lemur: Move to next node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_up, M.move_prev_preorder, { desc = 'Lemur: Move to previous node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_right, M.move_next_levelorder, { desc = 'Lemur: Move to next node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_left, M.move_prev_levelorder, { desc = 'Lemur: Move to previous node in level-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -444,10 +444,10 @@ local function get_prev_levelorder(current_node)
   return nil
 end
 
-function M.move_down()
+function M.move_next_preorder()
   local node = get_cursor_node()
   if not node then
-    log_action('move_down', 'no node found at cursor', nil)
+    log_action('move_next_preorder', 'no node found at cursor', nil)
     return
   end
 
@@ -462,7 +462,7 @@ function M.move_down()
   while attempts < max_attempts do
     local next_node = get_next_preorder(current_node)
     if not next_node then
-      log_action('move_down', 'no next node in pre-order traversal', current_info)
+      log_action('move_next_preorder', 'no next node in pre-order traversal', current_info)
       return
     end
     
@@ -471,7 +471,7 @@ function M.move_down()
     -- If the next node starts at a different position, move there
     if next_start_row ~= initial_row or next_start_col ~= initial_col then
       local target_info = get_node_info(next_node)
-      log_action('move_down', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      log_action('move_next_preorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
       set_cursor_to_node(next_node)
       return
     end
@@ -481,13 +481,14 @@ function M.move_down()
     attempts = attempts + 1
   end
   
-  log_action('move_down', 'reached max attempts without finding different position', current_info)
+  log_action('move_next_preorder', 'reached max attempts without finding different position', current_info)
 end
 
-function M.move_up()
+
+function M.move_prev_preorder()
   local node = get_cursor_node()
   if not node then
-    log_action('move_up', 'no node found at cursor', nil)
+    log_action('move_prev_preorder', 'no node found at cursor', nil)
     return
   end
 
@@ -502,7 +503,7 @@ function M.move_up()
   while attempts < max_attempts do
     local prev_node = get_prev_preorder(current_node)
     if not prev_node then
-      log_action('move_up', 'no previous node in pre-order traversal', current_info)
+      log_action('move_prev_preorder', 'no previous node in pre-order traversal', current_info)
       return
     end
     
@@ -511,7 +512,7 @@ function M.move_up()
     -- If the previous node starts at a different position, move there
     if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
       local target_info = get_node_info(prev_node)
-      log_action('move_up', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      log_action('move_prev_preorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
       set_cursor_to_node(prev_node)
       return
     end
@@ -521,13 +522,14 @@ function M.move_up()
     attempts = attempts + 1
   end
   
-  log_action('move_up', 'reached max attempts without finding different position', current_info)
+  log_action('move_prev_preorder', 'reached max attempts without finding different position', current_info)
 end
 
-function M.move_right()
+
+function M.move_next_levelorder()
   local node = get_cursor_node()
   if not node then
-    log_action('move_right', 'no node found at cursor', nil)
+    log_action('move_next_levelorder', 'no node found at cursor', nil)
     return
   end
 
@@ -535,17 +537,18 @@ function M.move_right()
   local next_node = get_next_levelorder(node)
   if next_node then
     local target_info = get_node_info(next_node)
-    log_action('move_right', 'next node in level-order traversal', current_info .. ' -> ' .. target_info)
+    log_action('move_next_levelorder', 'next node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(next_node)
   else
-    log_action('move_right', 'no next node in level-order traversal', current_info)
+    log_action('move_next_levelorder', 'no next node in level-order traversal', current_info)
   end
 end
 
-function M.move_left()
+
+function M.move_prev_levelorder()
   local node = get_cursor_node()
   if not node then
-    log_action('move_left', 'no node found at cursor', nil)
+    log_action('move_prev_levelorder', 'no node found at cursor', nil)
     return
   end
 
@@ -553,11 +556,12 @@ function M.move_left()
   local prev_node = get_prev_levelorder(node)
   if prev_node then
     local target_info = get_node_info(prev_node)
-    log_action('move_left', 'previous node in level-order traversal', current_info .. ' -> ' .. target_info)
+    log_action('move_prev_levelorder', 'previous node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(prev_node)
   else
-    log_action('move_left', 'no previous node in level-order traversal', current_info)
+    log_action('move_prev_levelorder', 'no previous node in level-order traversal', current_info)
   end
 end
+
 
 return M
