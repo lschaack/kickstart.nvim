@@ -121,6 +121,9 @@ return {
         move_prev_preorder_same_type = '˙', -- option + h
       },
       debug = true,
+      highlight = {
+        enabled = true,
+      },
     },
   },
   -- {

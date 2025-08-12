@@ -3,6 +3,9 @@ local M = {}
 M.debug = false
 M.logs = {}
 M.last_node = nil
+M.highlight_ns = nil
+M.last_function = nil
+M.highlight_timer = nil
 
 M.config = {
   keymaps = {
@@ -12,6 +15,11 @@ M.config = {
     move_prev_levelorder = '<M-h>',
     move_next_preorder_same_type = '<M-S-j>',
     move_prev_preorder_same_type = '<M-S-k>',
+  },
+  highlight = {
+    enabled = false,
+    highlight_group = 'LemurTargets',
+    clear_delay_ms = 3000, -- Auto-clear highlights after 3 seconds
   },
 }
 
@@ -65,6 +73,51 @@ function M.clear_logs()
   print 'Lemur debug logs cleared'
 end
 
+-- Highlight management functions (moved before setup to avoid forward reference issues)
+local function clear_highlights()
+  if M.highlight_ns then
+    vim.api.nvim_buf_clear_namespace(0, M.highlight_ns, 0, -1)
+  end
+  
+  if M.highlight_timer then
+    M.highlight_timer:stop()
+    M.highlight_timer = nil
+  end
+end
+
+local function highlight_node(node)
+  if not M.config.highlight.enabled or not M.highlight_ns or not node then
+    return
+  end
+  
+  local start_row, start_col = node:start()
+  local end_row, end_col = node:end_()
+  
+  vim.api.nvim_buf_add_highlight(0, M.highlight_ns, M.config.highlight.highlight_group, start_row, start_col, end_col)
+end
+
+local function highlight_nodes_with_auto_clear(nodes, function_name)
+  if not M.config.highlight.enabled then
+    return
+  end
+  
+  clear_highlights()
+  M.last_function = function_name
+  
+  for _, node in ipairs(nodes) do
+    highlight_node(node)
+  end
+  
+  -- Set up auto-clear timer
+  if M.config.highlight.clear_delay_ms > 0 then
+    M.highlight_timer = vim.loop.new_timer()
+    M.highlight_timer:start(M.config.highlight.clear_delay_ms, 0, vim.schedule_wrap(function()
+      clear_highlights()
+    end))
+  end
+end
+
+
 function M.setup(opts)
   opts = opts or {}
 
@@ -72,6 +125,19 @@ function M.setup(opts)
   if opts.keymaps then
     M.config.keymaps = vim.tbl_deep_extend('force', M.config.keymaps, opts.keymaps)
   end
+  if opts.highlight then
+    M.config.highlight = vim.tbl_deep_extend('force', M.config.highlight, opts.highlight)
+  end
+
+  -- Create highlight namespace
+  M.highlight_ns = vim.api.nvim_create_namespace('lemur_highlights')
+  
+  -- Set up highlight group
+  vim.api.nvim_set_hl(0, M.config.highlight.highlight_group, {
+    bg = '#3e4451',
+    fg = '#abb2bf',
+    default = true
+  })
 
   -- Set up keymaps
   vim.keymap.set('n', M.config.keymaps.move_next_preorder, M.move_next_preorder, { desc = 'Lemur: Move to next node in pre-order traversal' })
@@ -85,6 +151,23 @@ function M.setup(opts)
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
   vim.api.nvim_create_user_command('LemurLogs', M.show_logs, { desc = 'Show lemur debug logs' })
   vim.api.nvim_create_user_command('LemurClearLogs', M.clear_logs, { desc = 'Clear lemur debug logs' })
+  vim.api.nvim_create_user_command('LemurToggleHighlight', function()
+    M.config.highlight.enabled = not M.config.highlight.enabled
+    if not M.config.highlight.enabled then
+      clear_highlights()
+    end
+    print('Lemur highlighting: ' .. (M.config.highlight.enabled and 'enabled' or 'disabled'))
+  end, { desc = 'Toggle lemur highlighting' })
+  vim.api.nvim_create_user_command('LemurClearHighlight', clear_highlights, { desc = 'Clear lemur highlights' })
+  vim.api.nvim_create_user_command('LemurShowReachable', function()
+    if M.last_function then
+      local nodes = get_reachable_nodes(M.last_function)
+      highlight_nodes_with_auto_clear(nodes, M.last_function)
+      print('Highlighting ' .. #nodes .. ' reachable nodes for ' .. M.last_function)
+    else
+      print('No last function recorded')
+    end
+  end, { desc = 'Show nodes reachable by last used function' })
 
   if opts.debug then
     M.toggle_debug()
@@ -359,6 +442,26 @@ local function collect_nodes_by_type(root, target_type)
   return nodes
 end
 
+local function get_reachable_nodes(function_name)
+  local root = get_tree_root()
+  if not root then
+    return {}
+  end
+  
+  if function_name == 'move_next_preorder' or function_name == 'move_prev_preorder' then
+    return collect_all_nodes(root)
+  elseif function_name == 'move_next_levelorder' or function_name == 'move_prev_levelorder' then
+    return collect_all_nodes_levelorder(root)
+  elseif function_name == 'move_next_preorder_same_type' or function_name == 'move_prev_preorder_same_type' then
+    local current_node = get_cursor_node()
+    if current_node then
+      return collect_nodes_by_type(root, current_node:type())
+    end
+  end
+  
+  return {}
+end
+
 local function get_next_preorder(current_node)
   if not current_node then
     return nil
@@ -468,6 +571,7 @@ local function get_prev_levelorder(current_node)
   return nil
 end
 
+
 function M.move_next_preorder()
   local node = get_cursor_node()
   if not node then
@@ -497,6 +601,10 @@ function M.move_next_preorder()
       local target_info = get_node_info(next_node)
       log_action('move_next_preorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
       set_cursor_to_node(next_node)
+      
+      -- Highlight reachable nodes
+      local reachable = get_reachable_nodes('move_next_preorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_next_preorder')
       return
     end
     
@@ -538,6 +646,10 @@ function M.move_prev_preorder()
       local target_info = get_node_info(prev_node)
       log_action('move_prev_preorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
       set_cursor_to_node(prev_node)
+      
+      -- Highlight reachable nodes
+      local reachable = get_reachable_nodes('move_prev_preorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_prev_preorder')
       return
     end
     
@@ -563,6 +675,10 @@ function M.move_next_levelorder()
     local target_info = get_node_info(next_node)
     log_action('move_next_levelorder', 'next node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(next_node)
+    
+    -- Highlight reachable nodes
+    local reachable = get_reachable_nodes('move_next_levelorder')
+    highlight_nodes_with_auto_clear(reachable, 'move_next_levelorder')
   else
     log_action('move_next_levelorder', 'no next node in level-order traversal', current_info)
   end
@@ -582,6 +698,10 @@ function M.move_prev_levelorder()
     local target_info = get_node_info(prev_node)
     log_action('move_prev_levelorder', 'previous node in level-order traversal', current_info .. ' -> ' .. target_info)
     set_cursor_to_node(prev_node)
+    
+    -- Highlight reachable nodes
+    local reachable = get_reachable_nodes('move_prev_levelorder')
+    highlight_nodes_with_auto_clear(reachable, 'move_prev_levelorder')
   else
     log_action('move_prev_levelorder', 'no previous node in level-order traversal', current_info)
   end
@@ -625,6 +745,10 @@ function M.move_next_preorder_same_type()
           local target_info = get_node_info(candidate)
           log_action('move_next_preorder_same_type', 'found next same type node at different position', current_info .. ' -> ' .. target_info)
           set_cursor_to_node(candidate)
+          
+          -- Highlight reachable nodes
+          local reachable = get_reachable_nodes('move_next_preorder_same_type')
+          highlight_nodes_with_auto_clear(reachable, 'move_next_preorder_same_type')
           return
         end
       end
@@ -675,6 +799,10 @@ function M.move_prev_preorder_same_type()
           local target_info = get_node_info(candidate)
           log_action('move_prev_preorder_same_type', 'found previous same type node at different position', current_info .. ' -> ' .. target_info)
           set_cursor_to_node(candidate)
+          
+          -- Highlight reachable nodes
+          local reachable = get_reachable_nodes('move_prev_preorder_same_type')
+          highlight_nodes_with_auto_clear(reachable, 'move_prev_preorder_same_type')
           return
         end
       end
