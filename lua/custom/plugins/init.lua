@@ -115,8 +115,8 @@ return {
     lazy = false,
     opts = {
       keymaps = {
-        move_next_preorder_same_type_different_line = '∆', -- option + j
-        move_prev_preorder_same_type_different_line = '˚', -- option + k
+        move_next_preorder_same_type = '∆', -- option + j
+        move_prev_preorder_same_type = '˚', -- option + k
         move_next_preorder = '¬', -- option + l
         move_prev_preorder = '˙', -- option + h
       },

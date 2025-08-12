@@ -19,6 +19,10 @@ M.config = {
     move_prev_preorder_different_line = '<M-C-k>',
     move_next_preorder_same_type_different_line = '<M-C-S-j>',
     move_prev_preorder_same_type_different_line = '<M-C-S-k>',
+    move_next_inorder = '<M-i>',
+    move_prev_inorder = '<M-u>',
+    move_next_postorder = '<M-o>',
+    move_prev_postorder = '<M-p>',
   },
   highlight = {
     enabled = false,
@@ -154,6 +158,10 @@ function M.setup(opts)
   vim.keymap.set('n', M.config.keymaps.move_prev_preorder_different_line, M.move_prev_preorder_different_line, { desc = 'Lemur: Move to previous node on different line in pre-order traversal' })
   vim.keymap.set('n', M.config.keymaps.move_next_preorder_same_type_different_line, M.move_next_preorder_same_type_different_line, { desc = 'Lemur: Move to next node of same type on different line in pre-order traversal' })
   vim.keymap.set('n', M.config.keymaps.move_prev_preorder_same_type_different_line, M.move_prev_preorder_same_type_different_line, { desc = 'Lemur: Move to previous node of same type on different line in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_inorder, M.move_next_inorder, { desc = 'Lemur: Move to next node in in-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_inorder, M.move_prev_inorder, { desc = 'Lemur: Move to previous node in in-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_postorder, M.move_next_postorder, { desc = 'Lemur: Move to next node in post-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_postorder, M.move_prev_postorder, { desc = 'Lemur: Move to previous node in post-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -450,25 +458,6 @@ local function collect_nodes_by_type(root, target_type)
   return nodes
 end
 
-local function get_reachable_nodes(function_name)
-  local root = get_tree_root()
-  if not root then
-    return {}
-  end
-  
-  if function_name == 'move_next_preorder' or function_name == 'move_prev_preorder' or function_name == 'move_next_preorder_different_line' or function_name == 'move_prev_preorder_different_line' then
-    return collect_all_nodes(root)
-  elseif function_name == 'move_next_levelorder' or function_name == 'move_prev_levelorder' then
-    return collect_all_nodes_levelorder(root)
-  elseif function_name == 'move_next_preorder_same_type' or function_name == 'move_prev_preorder_same_type' or function_name == 'move_next_preorder_same_type_different_line' or function_name == 'move_prev_preorder_same_type_different_line' then
-    local current_node = get_cursor_node()
-    if current_node then
-      return collect_nodes_by_type(root, current_node:type())
-    end
-  end
-  
-  return {}
-end
 
 local function get_next_preorder(current_node)
   if not current_node then
@@ -537,6 +526,95 @@ local function collect_all_nodes_levelorder(root)
   return nodes
 end
 
+local function collect_all_nodes_inorder(root)
+  local nodes = {}
+  
+  local function traverse(node)
+    if not node then
+      return
+    end
+    
+    local children = {}
+    for child in node:iter_children() do
+      if child:named() then
+        table.insert(children, child)
+      end
+    end
+    
+    -- For general trees, in-order means: first child, current node, remaining children
+    if #children > 0 then
+      -- Process first child
+      traverse(children[1])
+    end
+    
+    -- Process current node
+    if node:named() then
+      table.insert(nodes, node)
+    end
+    
+    -- Process remaining children
+    for i = 2, #children do
+      traverse(children[i])
+    end
+  end
+  
+  if root then
+    traverse(root)
+  end
+  
+  return nodes
+end
+
+local function collect_all_nodes_postorder(root)
+  local nodes = {}
+  
+  local function traverse(node)
+    if not node then
+      return
+    end
+    
+    -- Process all children first
+    for child in node:iter_children() do
+      traverse(child)
+    end
+    
+    -- Then process current node
+    if node:named() then
+      table.insert(nodes, node)
+    end
+  end
+  
+  if root then
+    traverse(root)
+  end
+  
+  return nodes
+end
+
+local function get_reachable_nodes(function_name)
+  local root = get_tree_root()
+  if not root then
+    return {}
+  end
+  
+  if function_name == 'move_next_preorder' or function_name == 'move_prev_preorder' or function_name == 'move_next_preorder_different_line' or function_name == 'move_prev_preorder_different_line' then
+    return collect_all_nodes(root)
+  elseif function_name == 'move_next_levelorder' or function_name == 'move_prev_levelorder' then
+    return collect_all_nodes_levelorder(root)
+  elseif function_name == 'move_next_inorder' or function_name == 'move_prev_inorder' then
+    return collect_all_nodes_inorder(root)
+  elseif function_name == 'move_next_postorder' or function_name == 'move_prev_postorder' then
+    return collect_all_nodes_postorder(root)
+  elseif function_name == 'move_next_preorder_same_type' or function_name == 'move_prev_preorder_same_type' or function_name == 'move_next_preorder_same_type_different_line' or function_name == 'move_prev_preorder_same_type_different_line' then
+    local current_node = get_cursor_node()
+    if current_node then
+      return collect_nodes_by_type(root, current_node:type())
+    end
+  end
+  
+  return {}
+end
+
 local function get_next_levelorder(current_node)
   if not current_node then
     return nil
@@ -569,6 +647,90 @@ local function get_prev_levelorder(current_node)
   end
 
   local all_nodes = collect_all_nodes_levelorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i > 1 then
+      return all_nodes[i - 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_next_inorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_inorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i < #all_nodes then
+      return all_nodes[i + 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_prev_inorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_inorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i > 1 then
+      return all_nodes[i - 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_next_postorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_postorder(root)
+  
+  for i, node in ipairs(all_nodes) do
+    if nodes_equal(node, current_node) and i < #all_nodes then
+      return all_nodes[i + 1]
+    end
+  end
+  
+  return nil
+end
+
+local function get_prev_postorder(current_node)
+  if not current_node then
+    return nil
+  end
+
+  local root = get_tree_root()
+  if not root then
+    return nil
+  end
+
+  local all_nodes = collect_all_nodes_postorder(root)
   
   for i, node in ipairs(all_nodes) do
     if nodes_equal(node, current_node) and i > 1 then
@@ -1017,6 +1179,170 @@ function M.move_prev_preorder_same_type_different_line()
   end
   
   log_action('move_prev_preorder_same_type_different_line', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
+end
+
+function M.move_next_inorder()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_next_inorder', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local next_node = get_next_inorder(current_node)
+    if not next_node then
+      log_action('move_next_inorder', 'no next node in in-order traversal', current_info)
+      return
+    end
+    
+    local next_start_row, next_start_col = next_node:start()
+    
+    if next_start_row ~= initial_row or next_start_col ~= initial_col then
+      local target_info = get_node_info(next_node)
+      log_action('move_next_inorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(next_node)
+      
+      local reachable = get_reachable_nodes('move_next_inorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_next_inorder')
+      return
+    end
+    
+    current_node = next_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_next_inorder', 'reached max attempts without finding different position', current_info)
+end
+
+function M.move_prev_inorder()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_prev_inorder', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local prev_node = get_prev_inorder(current_node)
+    if not prev_node then
+      log_action('move_prev_inorder', 'no previous node in in-order traversal', current_info)
+      return
+    end
+    
+    local prev_start_row, prev_start_col = prev_node:start()
+    
+    if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
+      local target_info = get_node_info(prev_node)
+      log_action('move_prev_inorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(prev_node)
+      
+      local reachable = get_reachable_nodes('move_prev_inorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_prev_inorder')
+      return
+    end
+    
+    current_node = prev_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_prev_inorder', 'reached max attempts without finding different position', current_info)
+end
+
+function M.move_next_postorder()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_next_postorder', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local next_node = get_next_postorder(current_node)
+    if not next_node then
+      log_action('move_next_postorder', 'no next node in post-order traversal', current_info)
+      return
+    end
+    
+    local next_start_row, next_start_col = next_node:start()
+    
+    if next_start_row ~= initial_row or next_start_col ~= initial_col then
+      local target_info = get_node_info(next_node)
+      log_action('move_next_postorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(next_node)
+      
+      local reachable = get_reachable_nodes('move_next_postorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_next_postorder')
+      return
+    end
+    
+    current_node = next_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_next_postorder', 'reached max attempts without finding different position', current_info)
+end
+
+function M.move_prev_postorder()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_prev_postorder', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local prev_node = get_prev_postorder(current_node)
+    if not prev_node then
+      log_action('move_prev_postorder', 'no previous node in post-order traversal', current_info)
+      return
+    end
+    
+    local prev_start_row, prev_start_col = prev_node:start()
+    
+    if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
+      local target_info = get_node_info(prev_node)
+      log_action('move_prev_postorder', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(prev_node)
+      
+      local reachable = get_reachable_nodes('move_prev_postorder')
+      highlight_nodes_with_auto_clear(reachable, 'move_prev_postorder')
+      return
+    end
+    
+    current_node = prev_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_prev_postorder', 'reached max attempts without finding different position', current_info)
 end
 
 return M

@@ -83,3 +83,6 @@ This configuration prioritizes:
 - **Customization** - Easy to understand and modify
 - **Performance** - Lazy loading and efficient plugin management
 - **Tree-sitter Integration** - Heavy use of tree-sitter for syntax awareness
+
+## Development Best Practices
+- Always check function order after writing new functions
