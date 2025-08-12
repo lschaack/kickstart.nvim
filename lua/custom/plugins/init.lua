@@ -115,10 +115,10 @@ return {
     lazy = false,
     opts = {
       keymaps = {
-        move_down = '∆', -- option + j
-        move_up = '˚', -- option + k
-        move_right = '¬', -- option + l
-        move_left = '˙', -- option + h
+        move_next_preorder = '∆', -- option + j
+        move_prev_preorder = '˚', -- option + k
+        move_next_preorder_same_type = '¬', -- option + l
+        move_prev_preorder_same_type = '˙', -- option + h
       },
       debug = true,
     },

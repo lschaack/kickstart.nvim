@@ -6,10 +6,12 @@ M.last_node = nil
 
 M.config = {
   keymaps = {
-    move_down = '<M-j>',
-    move_up = '<M-k>',
-    move_right = '<M-l>',
-    move_left = '<M-h>',
+    move_next_preorder = '<M-j>',
+    move_prev_preorder = '<M-k>',
+    move_next_levelorder = '<M-l>',
+    move_prev_levelorder = '<M-h>',
+    move_next_preorder_same_type = '<M-S-j>',
+    move_prev_preorder_same_type = '<M-S-k>',
   },
 }
 
@@ -72,10 +74,12 @@ function M.setup(opts)
   end
 
   -- Set up keymaps
-  vim.keymap.set('n', M.config.keymaps.move_down, M.move_next_preorder, { desc = 'Lemur: Move to next node in pre-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_up, M.move_prev_preorder, { desc = 'Lemur: Move to previous node in pre-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_right, M.move_next_levelorder, { desc = 'Lemur: Move to next node in level-order traversal' })
-  vim.keymap.set('n', M.config.keymaps.move_left, M.move_prev_levelorder, { desc = 'Lemur: Move to previous node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_preorder, M.move_next_preorder, { desc = 'Lemur: Move to next node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_preorder, M.move_prev_preorder, { desc = 'Lemur: Move to previous node in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_levelorder, M.move_next_levelorder, { desc = 'Lemur: Move to next node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_levelorder, M.move_prev_levelorder, { desc = 'Lemur: Move to previous node in level-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_next_preorder_same_type, M.move_next_preorder_same_type, { desc = 'Lemur: Move to next node of same type in pre-order traversal' })
+  vim.keymap.set('n', M.config.keymaps.move_prev_preorder_same_type, M.move_prev_preorder_same_type, { desc = 'Lemur: Move to previous node of same type in pre-order traversal' })
 
   -- Set up commands
   vim.api.nvim_create_user_command('LemurToggleDebug', M.toggle_debug, { desc = 'Toggle lemur debug mode' })
@@ -563,5 +567,90 @@ function M.move_prev_levelorder()
   end
 end
 
+function M.move_next_preorder_same_type()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_next_preorder_same_type', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local target_type = node:type()
+  local attempts = 0
+  local max_attempts = 100 -- Higher limit since we're filtering by type
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local next_node = get_next_preorder(current_node)
+    if not next_node then
+      log_action('move_next_preorder_same_type', 'no next node in pre-order traversal', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+    
+    -- Check if this node is the same type and at a different position
+    if next_node:type() == target_type then
+      local next_start_row, next_start_col = next_node:start()
+      
+      if next_start_row ~= initial_row or next_start_col ~= initial_col then
+        local target_info = get_node_info(next_node)
+        log_action('move_next_preorder_same_type', 'found same type node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+        set_cursor_to_node(next_node)
+        return
+      end
+    end
+    
+    -- Continue to the next node
+    current_node = next_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_next_preorder_same_type', 'reached max attempts without finding same type at different position', current_info .. ' (type: ' .. target_type .. ')')
+end
+
+function M.move_prev_preorder_same_type()
+  local node = get_cursor_node()
+  if not node then
+    log_action('move_prev_preorder_same_type', 'no node found at cursor', nil)
+    return
+  end
+
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local target_type = node:type()
+  local attempts = 0
+  local max_attempts = 100 -- Higher limit since we're filtering by type
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local prev_node = get_prev_preorder(current_node)
+    if not prev_node then
+      log_action('move_prev_preorder_same_type', 'no previous node in pre-order traversal', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+    
+    -- Check if this node is the same type and at a different position
+    if prev_node:type() == target_type then
+      local prev_start_row, prev_start_col = prev_node:start()
+      
+      if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
+        local target_info = get_node_info(prev_node)
+        log_action('move_prev_preorder_same_type', 'found same type node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+        set_cursor_to_node(prev_node)
+        return
+      end
+    end
+    
+    -- Continue to the previous node
+    current_node = prev_node
+    attempts = attempts + 1
+  end
+  
+  log_action('move_prev_preorder_same_type', 'reached max attempts without finding same type at different position', current_info .. ' (type: ' .. target_type .. ')')
+end
 
 return M
