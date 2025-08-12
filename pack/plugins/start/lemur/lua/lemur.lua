@@ -451,15 +451,37 @@ function M.move_down()
     return
   end
 
-  local current_info = get_node_info(node)
-  local next_node = get_next_preorder(node)
-  if next_node then
-    local target_info = get_node_info(next_node)
-    log_action('move_down', 'next node in pre-order traversal', current_info .. ' -> ' .. target_info)
-    set_cursor_to_node(next_node)
-  else
-    log_action('move_down', 'no next node in pre-order traversal', current_info)
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20 -- Prevent infinite loops
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local next_node = get_next_preorder(current_node)
+    if not next_node then
+      log_action('move_down', 'no next node in pre-order traversal', current_info)
+      return
+    end
+    
+    local next_start_row, next_start_col = next_node:start()
+    
+    -- If the next node starts at a different position, move there
+    if next_start_row ~= initial_row or next_start_col ~= initial_col then
+      local target_info = get_node_info(next_node)
+      log_action('move_down', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(next_node)
+      return
+    end
+    
+    -- Continue to the next node
+    current_node = next_node
+    attempts = attempts + 1
   end
+  
+  log_action('move_down', 'reached max attempts without finding different position', current_info)
 end
 
 function M.move_up()
@@ -469,15 +491,37 @@ function M.move_up()
     return
   end
 
-  local current_info = get_node_info(node)
-  local prev_node = get_prev_preorder(node)
-  if prev_node then
-    local target_info = get_node_info(prev_node)
-    log_action('move_up', 'previous node in pre-order traversal', current_info .. ' -> ' .. target_info)
-    set_cursor_to_node(prev_node)
-  else
-    log_action('move_up', 'no previous node in pre-order traversal', current_info)
+  local initial_cursor = vim.api.nvim_win_get_cursor(0)
+  local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
+  local current_node = node
+  local attempts = 0
+  local max_attempts = 20 -- Prevent infinite loops
+  
+  local current_info = get_node_info(current_node)
+  
+  while attempts < max_attempts do
+    local prev_node = get_prev_preorder(current_node)
+    if not prev_node then
+      log_action('move_up', 'no previous node in pre-order traversal', current_info)
+      return
+    end
+    
+    local prev_start_row, prev_start_col = prev_node:start()
+    
+    -- If the previous node starts at a different position, move there
+    if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
+      local target_info = get_node_info(prev_node)
+      log_action('move_up', 'found node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
+      set_cursor_to_node(prev_node)
+      return
+    end
+    
+    -- Continue to the previous node
+    current_node = prev_node
+    attempts = attempts + 1
   end
+  
+  log_action('move_up', 'reached max attempts without finding different position', current_info)
 end
 
 function M.move_right()
