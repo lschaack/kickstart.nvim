@@ -339,6 +339,26 @@ local function collect_all_nodes(root)
   return nodes
 end
 
+local function collect_nodes_by_type(root, target_type)
+  local nodes = {}
+  
+  local function traverse(node)
+    if node:named() and node:type() == target_type then
+      table.insert(nodes, node)
+    end
+    
+    for child in node:iter_children() do
+      traverse(child)
+    end
+  end
+  
+  if root then
+    traverse(root)
+  end
+  
+  return nodes
+end
+
 local function get_next_preorder(current_node)
   if not current_node then
     return nil
@@ -576,38 +596,45 @@ function M.move_next_preorder_same_type()
 
   local initial_cursor = vim.api.nvim_win_get_cursor(0)
   local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
-  local current_node = node
   local target_type = node:type()
-  local attempts = 0
-  local max_attempts = 100 -- Higher limit since we're filtering by type
+  local current_info = get_node_info(node)
   
-  local current_info = get_node_info(current_node)
+  local root = get_tree_root()
+  if not root then
+    log_action('move_next_preorder_same_type', 'no tree root found', current_info)
+    return
+  end
+
+  -- Get all nodes of the same type in preorder
+  local same_type_nodes = collect_nodes_by_type(root, target_type)
   
-  while attempts < max_attempts do
-    local next_node = get_next_preorder(current_node)
-    if not next_node then
-      log_action('move_next_preorder_same_type', 'no next node in pre-order traversal', current_info .. ' (type: ' .. target_type .. ')')
-      return
-    end
-    
-    -- Check if this node is the same type and at a different position
-    if next_node:type() == target_type then
-      local next_start_row, next_start_col = next_node:start()
-      
-      if next_start_row ~= initial_row or next_start_col ~= initial_col then
-        local target_info = get_node_info(next_node)
-        log_action('move_next_preorder_same_type', 'found same type node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
-        set_cursor_to_node(next_node)
-        return
-      end
-    end
-    
-    -- Continue to the next node
-    current_node = next_node
-    attempts = attempts + 1
+  if #same_type_nodes == 0 then
+    log_action('move_next_preorder_same_type', 'no nodes of type found', current_info .. ' (type: ' .. target_type .. ')')
+    return
   end
   
-  log_action('move_next_preorder_same_type', 'reached max attempts without finding same type at different position', current_info .. ' (type: ' .. target_type .. ')')
+  -- Find the current node in the list and get the next one at a different position
+  for i, same_node in ipairs(same_type_nodes) do
+    if nodes_equal(same_node, node) then
+      -- Look for the next node at a different position
+      for j = i + 1, #same_type_nodes do
+        local candidate = same_type_nodes[j]
+        local candidate_row, candidate_col = candidate:start()
+        
+        if candidate_row ~= initial_row or candidate_col ~= initial_col then
+          local target_info = get_node_info(candidate)
+          log_action('move_next_preorder_same_type', 'found next same type node at different position', current_info .. ' -> ' .. target_info)
+          set_cursor_to_node(candidate)
+          return
+        end
+      end
+      
+      log_action('move_next_preorder_same_type', 'no next same type node at different position', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+  end
+  
+  log_action('move_next_preorder_same_type', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
 end
 
 function M.move_prev_preorder_same_type()
@@ -619,38 +646,45 @@ function M.move_prev_preorder_same_type()
 
   local initial_cursor = vim.api.nvim_win_get_cursor(0)
   local initial_row, initial_col = initial_cursor[1] - 1, initial_cursor[2]
-  local current_node = node
   local target_type = node:type()
-  local attempts = 0
-  local max_attempts = 100 -- Higher limit since we're filtering by type
+  local current_info = get_node_info(node)
   
-  local current_info = get_node_info(current_node)
+  local root = get_tree_root()
+  if not root then
+    log_action('move_prev_preorder_same_type', 'no tree root found', current_info)
+    return
+  end
+
+  -- Get all nodes of the same type in preorder
+  local same_type_nodes = collect_nodes_by_type(root, target_type)
   
-  while attempts < max_attempts do
-    local prev_node = get_prev_preorder(current_node)
-    if not prev_node then
-      log_action('move_prev_preorder_same_type', 'no previous node in pre-order traversal', current_info .. ' (type: ' .. target_type .. ')')
-      return
-    end
-    
-    -- Check if this node is the same type and at a different position
-    if prev_node:type() == target_type then
-      local prev_start_row, prev_start_col = prev_node:start()
-      
-      if prev_start_row ~= initial_row or prev_start_col ~= initial_col then
-        local target_info = get_node_info(prev_node)
-        log_action('move_prev_preorder_same_type', 'found same type node at different position after ' .. (attempts + 1) .. ' attempts', current_info .. ' -> ' .. target_info)
-        set_cursor_to_node(prev_node)
-        return
-      end
-    end
-    
-    -- Continue to the previous node
-    current_node = prev_node
-    attempts = attempts + 1
+  if #same_type_nodes == 0 then
+    log_action('move_prev_preorder_same_type', 'no nodes of type found', current_info .. ' (type: ' .. target_type .. ')')
+    return
   end
   
-  log_action('move_prev_preorder_same_type', 'reached max attempts without finding same type at different position', current_info .. ' (type: ' .. target_type .. ')')
+  -- Find the current node in the list and get the previous one at a different position
+  for i, same_node in ipairs(same_type_nodes) do
+    if nodes_equal(same_node, node) then
+      -- Look for the previous node at a different position
+      for j = i - 1, 1, -1 do
+        local candidate = same_type_nodes[j]
+        local candidate_row, candidate_col = candidate:start()
+        
+        if candidate_row ~= initial_row or candidate_col ~= initial_col then
+          local target_info = get_node_info(candidate)
+          log_action('move_prev_preorder_same_type', 'found previous same type node at different position', current_info .. ' -> ' .. target_info)
+          set_cursor_to_node(candidate)
+          return
+        end
+      end
+      
+      log_action('move_prev_preorder_same_type', 'no previous same type node at different position', current_info .. ' (type: ' .. target_type .. ')')
+      return
+    end
+  end
+  
+  log_action('move_prev_preorder_same_type', 'current node not found in same type list', current_info .. ' (type: ' .. target_type .. ')')
 end
 
 return M
