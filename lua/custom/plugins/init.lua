@@ -6,34 +6,19 @@ require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
 vim.keymap.set('n', '<leader><tab>', '<c-^><cr>', { desc = '[B]ack' })
-vim.keymap.set(
-  'n',
-  'ƒ', -- option + f
-  'f r<enter>^',
-  { desc = 'Break on next space' }
-)
-vim.keymap.set(
-  'c',
-  '®', -- option + r
-  's/<C-r>0//g<Left><Left>',
-  { desc = '[R]eplace the contents of the default register' }
-)
-vim.keymap.set(
-  { 'n', 'v' },
-  '®', -- option + r
-  ':s/<C-r>0//g<Left><Left>',
-  { desc = '[R]eplace the contents of the default register' }
-)
+vim.keymap.set('n', '<M-f>', 'f r<enter>^', { desc = 'Break on next space' })
+vim.keymap.set('c', '<M-r>', 's/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
+vim.keymap.set({ 'n', 'v' }, '<M-r>', ':s/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
 vim.keymap.set('n', '<leader>jk', "oconsole.log('<C-o>p', <C-o>p)<esc>", { desc = 'Paste last yanked text [j]s style' })
 -- vim.keymap.set(
 --   'n',
---   '∆', -- option + j
+--   '<M-j>',
 --   '<cmd>cnext<CR>',
 --   { desc = 'Go to next quickfix item' }
 -- )
 -- vim.keymap.set(
 --   'n',
---   '˚', -- option + k
+--   '<M-k>',
 --   '<cmd>cprev<CR>',
 --   { desc = 'Go to previous quickfix item' }
 -- )
@@ -51,18 +36,8 @@ vim.keymap.set('n', '<space>st', function()
   vim.cmd.wincmd 'J'
   vim.api.nvim_win_set_height(0, 15)
 end)
-vim.keymap.set(
-  'n',
-  'ç', -- option + c
-  'vBgUE',
-  { desc = '[C]apitalize last typed word' }
-)
-vim.keymap.set(
-  'i',
-  'ç', -- option + c
-  '<esc>vBgUEa',
-  { desc = '[C]apitalize last typed word' }
-)
+vim.keymap.set('n', '<M-c>', 'vBgUE', { desc = '[C]apitalize last typed word' })
+vim.keymap.set('i', '<M-c>', '<esc>vBgUEa', { desc = '[C]apitalize last typed word' })
 
 return {
   'mg979/vim-visual-multi',
@@ -115,10 +90,10 @@ return {
     lazy = false,
     opts = {
       keymaps = {
-        move_next_preorder_same_type = '∆', -- option + j
-        move_prev_preorder_same_type = '˚', -- option + k
-        move_next_preorder = '¬', -- option + l
-        move_prev_preorder = '˙', -- option + h
+        move_next_preorder_same_type = '<M-j>',
+        move_prev_preorder_same_type = '<M-k>',
+        move_next_preorder = '<M-l>',
+        move_prev_preorder = '<M-h>',
       },
       debug = true,
       highlight = {
