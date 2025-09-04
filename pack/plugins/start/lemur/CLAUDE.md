@@ -9,6 +9,7 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 ## Architecture
 
 ### Core Files
+
 - `init.lua` - Plugin entry point, exports the main module
 - `lua/lemur.lua` - Main implementation with all navigation logic
 - `plugin/lemur.lua` - Auto-setup file that initializes the plugin with defaults
@@ -16,17 +17,20 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 ### Key Components
 
 **Navigation Engine:**
+
 - Uses tree-sitter to parse code into AST nodes
 - Maintains cursor position state via `M.last_node`
 - Implements intelligent fallback strategies when navigation fails
 
 **Movement Functions:**
+
 - `move_down()` - Next sibling or parent with fallback
 - `move_up()` - Previous sibling or parent with fallback  
 - `move_right()` - Dive into child nodes or find next sibling up tree
 - `move_left()` - Move to parent node with meaningful positioning
 
 **Debug System:**
+
 - Optional debug logging with timestamps
 - Circular buffer (max 100 entries)
 - Real-time action logging and history viewing
@@ -34,6 +38,7 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 ## Configuration
 
 ### Default Keymaps
+
 ```lua
 {
   move_down = '<M-j>',    -- Alt+j
@@ -44,6 +49,7 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 ```
 
 ### Setup Options
+
 ```lua
 require('lemur').setup({
   keymaps = { ... },  -- Override default keymaps
@@ -54,39 +60,29 @@ require('lemur').setup({
 ## Navigation Logic
 
 ### Node Selection Strategy
+
 1. Get tree-sitter node at cursor position
 2. If multiple nodes at same position, prefer `M.last_node` for continuity
 3. Validate node boundaries contain cursor
 
-### Position Finding
-The `find_meaningful_position()` function ensures cursor moves to visually distinct locations:
-1. If not at node start, move to start
-2. For multi-line nodes, try end position
-3. For single-line nodes, find child at different position
-4. Fallback to end position
-
-### Parent Navigation
-`move_to_parent_with_fallback()` implements smart parent movement:
-1. Try meaningful position in parent
-2. If parent doesn't move cursor, try parent's next sibling
-3. If still no movement, try grandparent
-4. Returns false if no viable movement found
-
 ## Development Guidelines
 
 ### Code Style
+
 - Use descriptive function names with clear purposes
 - Maintain the modular structure with helper functions
 - Keep debug logging optional and performance-conscious
 - Follow Lua/Neovim plugin conventions
 
 ### Testing Navigation
+
 - Use `:LemurToggleDebug` to enable detailed movement logging
 - Test on various file types (Lua, JavaScript, Python, etc.)
 - Verify fallback behavior at file boundaries
 - Check multi-line node handling
 
 ### Key Algorithms
+
 - **Sibling traversal**: Iterate parent children to find adjacent named nodes
 - **Tree climbing**: Recursively search up tree for next sibling
 - **Position validation**: Ensure movements result in different cursor positions
@@ -106,3 +102,4 @@ The `find_meaningful_position()` function ensures cursor moves to visually disti
 - Visual feedback for current node
 - Integration with other tree-sitter tools
 - Performance optimization for large files
+

@@ -89,12 +89,6 @@ return {
     name = 'lemur',
     lazy = false,
     opts = {
-      keymaps = {
-        move_next_preorder_same_type = '<M-j>',
-        move_prev_preorder_same_type = '<M-k>',
-        move_next_preorder = '<M-l>',
-        move_prev_preorder = '<M-h>',
-      },
       debug = true,
       highlight = {
         enabled = true,
