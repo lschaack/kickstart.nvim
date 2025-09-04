@@ -75,15 +75,11 @@ The configuration follows a modular approach:
 - `<space>st` - Open terminal in split
 
 ### Lemur Plugin Keymaps
-- `<M-j>` - Move to next node of same type (preorder)
-- `<M-k>` - Move to previous node of same type (preorder)
-- `<M-l>` - Move to next node (preorder)
-- `<M-h>` - Move to previous node (preorder)
-- `<M-S-j>/<M-S-k>` - Same type navigation with Shift modifier
-- `<M-C-j>/<M-C-k>` - Different line navigation with Ctrl modifier
-- `<M-C-S-j>/<M-C-S-k>` - Same type + different line navigation
-- `<M-i>/<M-u>` - In-order traversal navigation
-- `<M-o>/<M-p>` - Post-order traversal navigation
+- `<leader>ls` - Toggle sticky mode for same-type nodes (default picker)
+- When sticky mode is active:
+  - `j` - Navigate to next node in the selected layer
+  - `k` - Navigate to previous node in the selected layer
+  - `<Esc>` - Exit sticky mode and clear highlights
 
 ### Language Support
 - **Lua** - Full LSP support with lua_ls, stylua formatting
@@ -100,24 +96,25 @@ Two local plugins are actively developed:
    - Accessible via `<leader>gu` keymap
 
 2. **lemur** (`pack/plugins/start/lemur/`)
-   - Advanced semantic code navigation using tree-sitter AST nodes
-   - Multiple traversal algorithms: preorder, levelorder, inorder, postorder
-   - Same-type node filtering and different-line constraints
-   - Visual highlighting of reachable nodes with auto-clear timers
+   - Sticky mode navigation system using tree-sitter AST nodes
+   - User-configurable node pickers to define navigation layers
+   - Visual highlighting of all nodes in the current layer
+   - Simple j/k navigation within sticky mode
+   - Escape key to clear sticky layer
    - Comprehensive debug logging system
-   - Intelligent position-aware navigation with fallback strategies
+   - Preconfigured same-type picker for nodes matching cursor node type
 
 ### Tree-sitter Integration
 The configuration heavily leverages tree-sitter for:
 - Syntax highlighting with incremental selection
-- Semantic code navigation via lemur plugin
+- Sticky mode navigation via lemur plugin for layer-based node movement
 - Node-aware text objects and movements
 - Language-specific parsing and AST traversal
 
 ## Configuration Philosophy
 
 This configuration prioritizes:
-- **Semantic Navigation** - Tree-sitter based code movement over traditional line/character navigation
+- **Sticky Mode Navigation** - Tree-sitter based layer navigation via lemur plugin
 - **Documentation** - Every plugin and option is documented inline
 - **Customization** - Easy to understand and modify single-file approach
 - **Performance** - Lazy loading and efficient plugin management
@@ -125,7 +122,7 @@ This configuration prioritizes:
 
 ## Development Best Practices
 - Always check function order after writing new functions
-- Use lemur for semantic code navigation instead of traditional movement
+- Use lemur sticky mode for navigating nodes of the same type or structure
 - Enable debug mode for lemur when developing navigation features
 - Test navigation on various file types (Lua, JavaScript, Python, etc.)
-- Verify highlighting and auto-clear functionality
+- Verify highlighting functionality in sticky mode

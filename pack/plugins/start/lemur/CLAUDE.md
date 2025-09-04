@@ -4,30 +4,32 @@ This file provides guidance to Claude Code when working with the Lemur plugin co
 
 ## Overview
 
-Lemur is a Neovim plugin that provides semantic code navigation using tree-sitter AST nodes. It allows users to move through code structurally rather than just by lines/characters.
+Lemur is a Neovim plugin that provides sticky mode navigation using tree-sitter AST nodes. It allows users to create navigation layers defined by node pickers and navigate through them with simple j/k keys.
 
 ## Architecture
 
 ### Core Files
 
 - `init.lua` - Plugin entry point, exports the main module
-- `lua/lemur.lua` - Main implementation with all navigation logic
+- `lua/lemur.lua` - Main implementation with sticky mode logic
 - `plugin/lemur.lua` - Auto-setup file that initializes the plugin with defaults
 
 ### Key Components
 
-**Navigation Engine:**
+**Sticky Mode System:**
 
-- Uses tree-sitter to parse code into AST nodes
-- Maintains cursor position state via `M.last_node`
-- Implements intelligent fallback strategies when navigation fails
+- Users configure key combinations to toggle sticky modes
+- Each sticky mode is defined by a node picker function
+- When active, all picked nodes are highlighted
+- Simple j/k navigation moves between nodes in the layer
+- Escape key clears the sticky mode
 
-**Movement Functions:**
+**Node Pickers:**
 
-- `move_down()` - Next sibling or parent with fallback
-- `move_up()` - Previous sibling or parent with fallback  
-- `move_right()` - Dive into child nodes or find next sibling up tree
-- `move_left()` - Move to parent node with meaningful positioning
+- Functions that return collections of tree-sitter nodes
+- Define the "layer" of nodes available for navigation
+- Built-in same-type picker for nodes matching cursor node type
+- Extensible system for custom pickers
 
 **Debug System:**
 
@@ -41,10 +43,7 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 
 ```lua
 {
-  move_down = '<M-j>',    -- Alt+j
-  move_up = '<M-k>',      -- Alt+k  
-  move_right = '<M-l>',   -- Alt+l
-  move_left = '<M-h>',    -- Alt+h
+  same_type_picker = '<leader>ls',  -- Toggle same-type sticky mode
 }
 ```
 
@@ -52,54 +51,84 @@ Lemur is a Neovim plugin that provides semantic code navigation using tree-sitte
 
 ```lua
 require('lemur').setup({
-  keymaps = { ... },  -- Override default keymaps
-  debug = false       -- Enable debug mode on startup
+  keymaps = { 
+    same_type_picker = '<leader>ls',  -- Override default keymap
+  },
+  highlight = {
+    highlight_group = 'LemurTargets', -- Customize highlight group
+  },
+  debug = false  -- Enable debug mode on startup
 })
 ```
 
-## Navigation Logic
+## Sticky Mode Usage
 
-### Node Selection Strategy
+### Basic Workflow
 
-1. Get tree-sitter node at cursor position
-2. If multiple nodes at same position, prefer `M.last_node` for continuity
-3. Validate node boundaries contain cursor
+1. Position cursor on a node of interest
+2. Press `<leader>ls` to activate same-type sticky mode
+3. All nodes of the same type are highlighted
+4. Use `j` to move to next node, `k` to move to previous node
+5. Press `<Esc>` to exit sticky mode
+
+### Available Pickers
+
+- **same_type**: Finds all nodes with the same type as the node under cursor
 
 ## Development Guidelines
 
+### Adding Custom Pickers
+
+```lua
+local function my_custom_picker()
+  local root = get_tree_root()
+  local nodes = collect_specific_nodes(root) -- Your collection logic
+  activate_sticky_mode(nodes, 'my_picker')
+end
+
+-- Register with keymap
+vim.keymap.set('n', '<leader>lc', M.toggle_sticky_mode(my_custom_picker, 'custom'), 
+  { desc = 'Toggle custom sticky mode' })
+```
+
+### Key Functions
+
+- `activate_sticky_mode(nodes, picker_name)` - Starts sticky mode with given nodes
+- `clear_sticky_mode()` - Exits sticky mode and clears highlights
+- `navigate_next()` / `navigate_prev()` - Move through nodes in sticky mode
+- `M.toggle_sticky_mode(picker_func, name)` - Creates toggle function for keymaps
+
 ### Code Style
 
-- Use descriptive function names with clear purposes
-- Maintain the modular structure with helper functions
-- Keep debug logging optional and performance-conscious
+- Keep picker functions focused and simple
+- Use descriptive names for picker functions
+- Maintain the modular structure
 - Follow Lua/Neovim plugin conventions
 
 ### Testing Navigation
 
-- Use `:LemurToggleDebug` to enable detailed movement logging
-- Test on various file types (Lua, JavaScript, Python, etc.)
-- Verify fallback behavior at file boundaries
-- Check multi-line node handling
-
-### Key Algorithms
-
-- **Sibling traversal**: Iterate parent children to find adjacent named nodes
-- **Tree climbing**: Recursively search up tree for next sibling
-- **Position validation**: Ensure movements result in different cursor positions
-- **State persistence**: Track last node to maintain navigation context
+- Use `:LemurToggleDebug` to enable detailed logging
+- Test sticky mode on various file types
+- Verify highlighting behavior
+- Check wrap-around navigation (end to beginning)
 
 ## Common Use Cases
 
-1. **Function navigation** - Move between function definitions
-2. **Block traversal** - Navigate if/else, loops, try/catch blocks  
-3. **Expression trees** - Move through nested expressions
-4. **Scope jumping** - Quick parent scope navigation
+1. **Same-type navigation** - Move between all function definitions, variables, etc.
+2. **Custom layer navigation** - Create pickers for specific node patterns
+3. **Structural editing** - Navigate related code structures quickly
+4. **Code review** - Jump between similar constructs in large files
 
-## Future Enhancement Areas
+## Extension Points
 
-- Custom node type filtering
+- Custom picker functions for specific node types or patterns
 - Language-specific navigation rules
-- Visual feedback for current node
 - Integration with other tree-sitter tools
-- Performance optimization for large files
+- Visual feedback customization
 
+## Commands
+
+- `:LemurToggleDebug` - Toggle debug logging
+- `:LemurLogs` - Show debug log history
+- `:LemurClearLogs` - Clear debug logs
+- `:LemurClearSticky` - Manually exit sticky mode
