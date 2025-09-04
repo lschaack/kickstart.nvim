@@ -208,6 +208,28 @@ local function set_cursor_to_node(node)
   vim.api.nvim_win_set_cursor(0, { start_row + 1, start_col })
 end
 
+local function find_nearest_node_index(nodes, cursor_pos)
+  if #nodes == 0 then return 1 end
+  if not cursor_pos then return 1 end
+  
+  local cursor_row, cursor_col = cursor_pos[1] - 1, cursor_pos[2] -- Convert to 0-based
+  local nearest_index = 1
+  local min_distance = math.huge
+  
+  for i, node in ipairs(nodes) do
+    local node_row, node_col = node:start()
+    -- Calculate Manhattan distance
+    local distance = math.abs(cursor_row - node_row) + math.abs(cursor_col - node_col)
+    
+    if distance < min_distance then
+      min_distance = distance
+      nearest_index = i
+    end
+  end
+  
+  return nearest_index
+end
+
 local function clear_sticky_mode()
   if not M.sticky_state.active then
     return
@@ -273,19 +295,35 @@ local function activate_sticky_mode(nodes, picker_name)
   M.sticky_state.nodes = nodes
   M.sticky_state.picker_name = picker_name
   
-  -- Find current cursor position in the nodes to set initial index
+  -- Find nearest node to current cursor position
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
   local cursor_node = get_cursor_node()
-  M.sticky_state.current_index = 1
   
+  -- Check if cursor is already exactly on a picked node
+  local exact_match_index = nil
   if cursor_node then
     for i, node in ipairs(nodes) do
       local cursor_row, cursor_col = cursor_node:start()
       local node_row, node_col = node:start()
       if cursor_row == node_row and cursor_col == node_col then
-        M.sticky_state.current_index = i
+        exact_match_index = i
         break
       end
     end
+  end
+  
+  if exact_match_index then
+    -- Already on a picked node, don't jump
+    M.sticky_state.current_index = exact_match_index
+    log_action('activate_sticky_mode', 'cursor already on picked node', string.format('index %d/%d', exact_match_index, #nodes))
+  else
+    -- Find and jump to nearest node
+    local nearest_index = find_nearest_node_index(nodes, cursor_pos)
+    M.sticky_state.current_index = nearest_index
+    
+    local nearest_node = nodes[nearest_index]
+    set_cursor_to_node(nearest_node)
+    log_action('activate_sticky_mode', 'jumped to nearest node', string.format('index %d/%d', nearest_index, #nodes))
   end
 
   highlight_nodes(nodes)

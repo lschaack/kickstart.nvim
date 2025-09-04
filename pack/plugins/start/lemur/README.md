@@ -18,20 +18,31 @@ Lemur is a Neovim plugin that provides **sticky mode navigation** for moving bet
 
 ### Basic Usage
 
-1. **Position cursor** on any code element (function, variable, etc.)
+1. **Position cursor** anywhere in your code
 2. **Activate picker** using a keymap (e.g., `<leader>lf` for functions)
-3. **Navigate** with `j` (next) and `k` (previous)
-4. **Exit** with `<Esc>`
+3. **Cursor jumps** to the nearest matching node automatically
+4. **Navigate** with `j` (next) and `k` (previous)
+5. **Exit** with `<Esc>`
 
 ### Example Workflow
 
 ```lua
--- On this function definition
+-- Position cursor anywhere in this file
 function calculateTotal(items) {
-  -- Press <leader>lf to activate function picker
-  -- All functions in the file are now highlighted
-  -- Use j/k to jump between them
-  -- Press <Esc> to exit sticky mode
+  // other code here...
+}
+
+function processData(data) {
+  // more code...
+}
+
+// Cursor is here somewhere
+function validateInput(input) {
+  // Press <leader>lf to activate function picker
+  // Cursor automatically jumps to nearest function
+  // All functions are highlighted
+  // Use j/k to navigate between them
+  // Press <Esc> to exit sticky mode
 }
 ```
 
@@ -344,6 +355,8 @@ pickers = {
 
 1. **Picker Activation** - When you trigger a picker, Lemur:
    - Collects relevant nodes (via LSP or custom function)
+   - Finds the nearest node to your cursor position
+   - Jumps to the nearest node (unless cursor is already exactly on a picked node)
    - Highlights all nodes in the buffer
    - Sets up temporary keymaps for navigation
 
