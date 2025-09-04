@@ -52,12 +52,43 @@ Lemur is a Neovim plugin that provides sticky mode navigation using tree-sitter 
 ```lua
 require('lemur').setup({
   keymaps = { 
-    same_type_picker = '<leader>ls',  -- Override default keymap
+    same_type_picker = '<leader>ls',  -- Override default keymap (deprecated)
   },
   highlight = {
     highlight_group = 'LemurTargets', -- Customize highlight group
   },
-  debug = false  -- Enable debug mode on startup
+  debug = false,  -- Enable debug mode on startup
+  
+  -- NEW: Extensible picker system
+  pickers = {
+    -- SymbolKind pickers (string shorthand)
+    functions = 'Function',
+    variables = 'Variable',
+    classes = 'Class',
+    
+    -- SymbolKind picker with custom configuration
+    methods = { 
+      kind = 'Method', 
+      keymap = '<leader>lm',
+      name = 'Class Methods'
+    },
+    
+    -- Custom function picker
+    todos = {
+      func = function()
+        -- Your custom node collection logic
+        return collect_todo_comment_nodes()
+      end,
+      keymap = '<leader>lt',
+      name = 'TODO Comments'
+    },
+    
+    -- Override built-in pickers
+    same_type = { keymap = '<leader>ls' },
+    
+    -- Disable unwanted pickers
+    unwanted = false,
+  }
 })
 ```
 
@@ -73,7 +104,88 @@ require('lemur').setup({
 
 ### Available Pickers
 
+**Built-in Pickers:**
 - **same_type**: Finds all nodes with the same type as the node under cursor
+
+**SymbolKind Pickers (via LSP):**
+- **Function**, **Variable**, **Class**, **Method**, **Property**, **Field**
+- **Constructor**, **Enum**, **Interface**, **Constant**, **String**, **Number**
+- **Boolean**, **Array**, **Object**, **Key**, **Null**, **EnumMember**
+- **Struct**, **Event**, **Operator**, **TypeParameter**
+
+## Extensible Picker System
+
+### Picker Configuration Types
+
+#### 1. SymbolKind Shorthand
+```lua
+pickers = {
+  functions = 'Function',  -- Simple string shorthand
+  variables = 'Variable',  -- Maps to vim.lsp.protocol.SymbolKind.Variable
+}
+```
+
+#### 2. SymbolKind with Configuration
+```lua
+pickers = {
+  methods = {
+    kind = 'Method',
+    keymap = '<leader>lm',
+    name = 'Class Methods'
+  }
+}
+```
+
+#### 3. Custom Function Picker
+```lua
+pickers = {
+  custom_picker = {
+    func = function()
+      -- Return array of tree-sitter nodes
+      return your_node_collection_logic()
+    end,
+    keymap = '<leader>lx',
+    name = 'Custom Nodes'
+  }
+}
+```
+
+### Runtime API
+
+#### Register Pickers Programmatically
+```lua
+local lemur = require('lemur')
+
+-- Register a new SymbolKind picker
+lemur.register_picker('constants', {
+  kind = 'Constant',
+  keymap = '<leader>lc',
+  name = 'Constants'
+})
+
+-- Register a custom function picker
+lemur.register_picker('errors', {
+  func = function()
+    -- Collect error-related nodes
+    return collect_error_nodes()
+  end,
+  keymap = '<leader>le'
+})
+```
+
+#### Use Pickers Programmatically
+```lua
+-- Get and execute a picker
+local picker_func = lemur.get_picker('functions')
+if picker_func then
+  picker_func() -- Activates sticky mode
+end
+
+-- Check if picker exists
+if lemur.picker_registry['my_picker'] then
+  -- Picker is registered
+end
+```
 
 ## Development Guidelines
 

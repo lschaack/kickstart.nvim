@@ -20,6 +20,9 @@ M.config = {
   },
 }
 
+-- Picker registry system
+M.picker_registry = {}
+
 local function log_action(action, reason, info)
   if not M.debug then
     return
@@ -135,6 +138,67 @@ local function collect_nodes_by_type(root, target_type)
   return nodes
 end
 
+-- LSP SymbolKind integration
+local function collect_symbols_recursive(symbols, target_kind, result)
+  for _, symbol in ipairs(symbols) do
+    if symbol.kind == target_kind then
+      table.insert(result, symbol)
+    end
+    if symbol.children then
+      collect_symbols_recursive(symbol.children, target_kind, result)
+    end
+  end
+end
+
+local function get_lsp_symbols_by_kind(symbol_kind)
+  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  if #clients == 0 then
+    log_action('get_lsp_symbols_by_kind', 'no LSP clients available', tostring(symbol_kind))
+    return {}
+  end
+  
+  local params = { textDocument = vim.lsp.util.make_text_document_params() }
+  local result = vim.lsp.buf_request_sync(0, 'textDocument/documentSymbol', params, 5000)
+  
+  if not result or vim.tbl_isempty(result) then
+    log_action('get_lsp_symbols_by_kind', 'no LSP symbols returned', tostring(symbol_kind))
+    return {}
+  end
+  
+  local symbols = {}
+  for _, res in pairs(result) do
+    if res.result then
+      collect_symbols_recursive(res.result, symbol_kind, symbols)
+    end
+  end
+  
+  log_action('get_lsp_symbols_by_kind', 'collected LSP symbols', string.format('%d symbols of kind %d', #symbols, symbol_kind))
+  return symbols
+end
+
+local function find_node_at_position(pos)
+  local row, col = pos.line, pos.character
+  local parser = vim.treesitter.get_parser(0)
+  if not parser then return nil end
+  
+  local tree = parser:parse()[1]
+  if not tree then return nil end
+  
+  return tree:root():named_descendant_for_range(row, col, row, col)
+end
+
+local function symbols_to_nodes(symbols)
+  local nodes = {}
+  for _, symbol in ipairs(symbols) do
+    local node = find_node_at_position(symbol.range.start)
+    if node then
+      table.insert(nodes, node)
+    end
+  end
+  log_action('symbols_to_nodes', 'converted symbols to nodes', string.format('%d symbols -> %d nodes', #symbols, #nodes))
+  return nodes
+end
+
 local function set_cursor_to_node(node)
   if not node then
     return
@@ -160,7 +224,7 @@ local function clear_sticky_mode()
   
   -- Remove temporary keymaps
   for _, keymap in ipairs(M.sticky_state.keymaps) do
-    vim.keymap.del('n', keymap)
+    pcall(vim.keymap.del, 'n', keymap, { buffer = 0 })
   end
   M.sticky_state.keymaps = {}
 end
@@ -259,6 +323,119 @@ local function same_type_picker()
   activate_sticky_mode(nodes, 'same_type (' .. target_type .. ')')
 end
 
+-- Picker registry and management functions
+local function normalize_picker_config(config)
+  if type(config) == 'string' then
+    -- SymbolKind shorthand: 'Function' -> { kind = 'Function' }
+    config = { kind = config }
+  elseif type(config) == 'function' then
+    -- Function shorthand: func -> { func = func }
+    config = { func = config }
+  end
+  
+  -- Ensure config is a table
+  if type(config) ~= 'table' then
+    error('Picker config must be a string, function, or table')
+  end
+  
+  return config
+end
+
+local function create_picker_function(name, config)
+  if config.type == 'builtin' and config.func then
+    return config.func
+  elseif config.kind then
+    -- SymbolKind picker
+    return function()
+      local symbol_kind_map = {
+        File = vim.lsp.protocol.SymbolKind.File,
+        Module = vim.lsp.protocol.SymbolKind.Module,
+        Namespace = vim.lsp.protocol.SymbolKind.Namespace,
+        Package = vim.lsp.protocol.SymbolKind.Package,
+        Class = vim.lsp.protocol.SymbolKind.Class,
+        Method = vim.lsp.protocol.SymbolKind.Method,
+        Property = vim.lsp.protocol.SymbolKind.Property,
+        Field = vim.lsp.protocol.SymbolKind.Field,
+        Constructor = vim.lsp.protocol.SymbolKind.Constructor,
+        Enum = vim.lsp.protocol.SymbolKind.Enum,
+        Interface = vim.lsp.protocol.SymbolKind.Interface,
+        Function = vim.lsp.protocol.SymbolKind.Function,
+        Variable = vim.lsp.protocol.SymbolKind.Variable,
+        Constant = vim.lsp.protocol.SymbolKind.Constant,
+        String = vim.lsp.protocol.SymbolKind.String,
+        Number = vim.lsp.protocol.SymbolKind.Number,
+        Boolean = vim.lsp.protocol.SymbolKind.Boolean,
+        Array = vim.lsp.protocol.SymbolKind.Array,
+        Object = vim.lsp.protocol.SymbolKind.Object,
+        Key = vim.lsp.protocol.SymbolKind.Key,
+        Null = vim.lsp.protocol.SymbolKind.Null,
+        EnumMember = vim.lsp.protocol.SymbolKind.EnumMember,
+        Struct = vim.lsp.protocol.SymbolKind.Struct,
+        Event = vim.lsp.protocol.SymbolKind.Event,
+        Operator = vim.lsp.protocol.SymbolKind.Operator,
+        TypeParameter = vim.lsp.protocol.SymbolKind.TypeParameter,
+      }
+      
+      local symbol_kind = symbol_kind_map[config.kind]
+      if not symbol_kind then
+        print('Unknown SymbolKind: ' .. config.kind)
+        return
+      end
+      
+      local symbols = get_lsp_symbols_by_kind(symbol_kind)
+      local nodes = symbols_to_nodes(symbols)
+      
+      if #nodes == 0 then
+        print('No ' .. config.kind .. ' symbols found')
+        return
+      end
+      
+      activate_sticky_mode(nodes, config.name or (config.kind .. ' symbols'))
+    end
+  elseif config.func then
+    -- Custom function picker
+    return function()
+      local nodes = config.func()
+      if not nodes or #nodes == 0 then
+        print('No nodes found for picker: ' .. (config.name or name))
+        return
+      end
+      activate_sticky_mode(nodes, config.name or name)
+    end
+  else
+    error('Picker config must have either "kind" or "func" field')
+  end
+end
+
+function M.register_picker(name, config)
+  config = normalize_picker_config(config)
+  
+  -- Set defaults
+  config.name = config.name or name
+  config.type = config.type or (config.kind and 'symbol' or 'function')
+  
+  M.picker_registry[name] = config
+  
+  -- Auto-setup keymap if provided
+  if config.keymap then
+    local picker_func = create_picker_function(name, config)
+    vim.keymap.set('n', config.keymap, 
+      M.toggle_sticky_mode(picker_func, config.name), 
+      { desc = 'Lemur: ' .. config.name })
+    log_action('register_picker', 'registered picker with keymap', string.format('%s -> %s', name, config.keymap))
+  else
+    log_action('register_picker', 'registered picker', name)
+  end
+end
+
+function M.get_picker(name)
+  local config = M.picker_registry[name]
+  if not config then
+    return nil
+  end
+  return create_picker_function(name, config)
+end
+
 function M.toggle_sticky_mode(picker_func, picker_name)
   return function()
     if M.sticky_state.active then
@@ -290,9 +467,25 @@ function M.setup(opts)
     default = true,
   })
 
-  -- Set up default keymaps
-  if M.config.keymaps.same_type_picker ~= nil then
-    vim.keymap.set('n', M.config.keymaps.same_type_picker, M.toggle_sticky_mode(same_type_picker, 'same_type'), { desc = 'Lemur: Toggle same type sticky mode' })
+  -- Register built-in pickers
+  M.register_picker('same_type', { 
+    func = same_type_picker, 
+    type = 'builtin',
+    keymap = M.config.keymaps.same_type_picker,
+    name = 'Same Type'
+  })
+
+  -- Process user-defined pickers
+  if opts.pickers then
+    for name, config in pairs(opts.pickers) do
+      if config == false then
+        -- Disable picker by removing it from registry
+        M.picker_registry[name] = nil
+        log_action('setup', 'disabled picker', name)
+      else
+        M.register_picker(name, config)
+      end
+    end
   end
 
   -- Set up commands

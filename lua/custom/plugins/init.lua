@@ -89,9 +89,50 @@ return {
     name = 'lemur',
     lazy = false,
     opts = {
-      debug = true,
+      debug = false,
       highlight = {
-        enabled = true,
+        highlight_group = 'LemurTargets',
+      },
+      pickers = {
+        -- SymbolKind pickers with custom keymaps
+        functions = { kind = 'Function', keymap = '<leader>lf', name = 'Functions' },
+        variables = { kind = 'Variable', keymap = '<leader>lv', name = 'Variables' },
+        classes = { kind = 'Class', keymap = '<leader>lc', name = 'Classes' },
+        methods = { kind = 'Method', keymap = '<leader>lm', name = 'Methods' },
+
+        -- Custom function picker for TODO comments
+        todos = {
+          func = function()
+            local nodes = {}
+            local parser = vim.treesitter.get_parser(0)
+            if not parser then
+              return nodes
+            end
+
+            local tree = parser:parse()[1]
+            if not tree then
+              return nodes
+            end
+
+            local function traverse(node)
+              if node:type() == 'comment' then
+                local text = vim.treesitter.get_node_text(node, 0)
+                if text and (text:match 'TODO' or text:match 'FIXME' or text:match 'NOTE') then
+                  table.insert(nodes, node)
+                end
+              end
+
+              for child in node:iter_children() do
+                traverse(child)
+              end
+            end
+
+            traverse(tree:root())
+            return nodes
+          end,
+          keymap = '<leader>lt',
+          name = 'TODO Comments',
+        },
       },
     },
   },
