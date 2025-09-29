@@ -83,6 +83,14 @@ return {
     end,
   },
   {
+    dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/claude-path',
+    name = 'claude-path',
+    lazy = false,
+    config = function()
+      vim.api.nvim_set_keymap('n', '<leader>cp', "<cmd>lua require('claude_path').copy_claude_path()<CR>", { noremap = true, silent = true })
+    end,
+  },
+  {
     dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/lemur',
     name = 'lemur',
     lazy = false,
