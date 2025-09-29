@@ -527,6 +527,23 @@ require('lazy').setup({
 
         tailwindcss = {},
 
+        ts_ls = {
+          settings = {
+            typescript = {
+              preferences = {
+                importModuleSpecifier = 'non-relative',
+                quotePreference = 'auto',
+              },
+            },
+            javascript = {
+              preferences = {
+                importModuleSpecifier = 'non-relative',
+                quotePreference = 'auto',
+              },
+            },
+          },
+        },
+
         graphql = {},
       },
     },

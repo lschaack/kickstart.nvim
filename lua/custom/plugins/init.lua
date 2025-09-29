@@ -2,7 +2,7 @@ vim.opt.expandtab = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
-require 'custom.plugins.ts-actions'
+-- require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
 vim.keymap.set('n', '<leader><tab>', '<c-^><cr>', { desc = '[B]ack' })
@@ -39,20 +39,18 @@ end)
 vim.keymap.set('n', '<M-c>', 'vBgUE', { desc = '[C]apitalize last typed word' })
 vim.keymap.set('i', '<M-c>', '<esc>vBgUEa', { desc = '[C]apitalize last typed word' })
 
+vim.api.nvim_create_augroup('typescript_makeprg', { clear = true })
+vim.api.nvim_create_autocmd('FileType', {
+  group = 'typescript_makeprg',
+  pattern = { 'typescript', 'typescriptreact' },
+  callback = function()
+    vim.opt_local.makeprg = 'tsc --noEmit'
+    vim.opt_local.errorformat = '%+A %#%f %#(%l\\,%c): %m,%C%m'
+  end,
+})
+
 return {
   'mg979/vim-visual-multi',
-  {
-    'pmizio/typescript-tools.nvim',
-    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
-    opts = {
-      settings = {
-        tsserver_file_preferences = {
-          importModuleSpecifier = 'non-relative',
-          quotePreference = 'auto',
-        },
-      },
-    },
-  },
   {
     'mikesmithgh/kitty-scrollback.nvim',
     enabled = true,
@@ -136,49 +134,6 @@ return {
       },
     },
   },
-  -- {
-  --   dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/scope-navigation',
-  --   name = 'scope-navigation',
-  --   lazy = false,
-  --   config = function()
-  --     require('scope_navigation').setup {
-  --       keymap = {
-  --         prev = '˚',
-  --         next = '∆',
-  --         in_scope = '¬',
-  --         out_scope = '˙',
-  --         visualize = '√',
-  --       },
-  --
-  --       -- Add custom navigable nodes for specific languages
-  --       language_nodes = {
-  --         typescript = {
-  --           'object',
-  --           'array',
-  --           'ternary_expression',
-  --         },
-  --       },
-  --
-  --       -- Custom logic for determining navigable nodes
-  --       node_matcher = function(node)
-  --         return true
-  --         -- -- Example: Treat any node with 'expression' in its type as navigable
-  --         -- local node_type = node:type()
-  --         -- return string.match(node_type, 'expression') ~= nil
-  --       end,
-  --
-  --       -- Visual feedback settings
-  --       tree_visualization = {
-  --         max_depth = 25, -- Show deeper nodes
-  --         show_unnamed_nodes = true, -- Include unnamed nodes
-  --         max_node_length = 40, -- Show longer text previews
-  --       },
-  --
-  --       -- Uncomment to enable debug mode
-  --       debug = true,
-  --     }
-  --   end,
-  -- },
   {
     'zbirenbaum/copilot.lua',
     cmd = 'Copilot',
@@ -198,5 +153,42 @@ return {
         },
       }
     end,
+  },
+  {
+    'folke/trouble.nvim',
+    opts = {}, -- for default options, refer to the configuration section for custom setup.
+    cmd = 'Trouble',
+    keys = {
+      {
+        '<leader>xx',
+        '<cmd>Trouble diagnostics toggle<cr>',
+        desc = 'Diagnostics (Trouble)',
+      },
+      {
+        '<leader>xX',
+        '<cmd>Trouble diagnostics toggle filter.buf=0<cr>',
+        desc = 'Buffer Diagnostics (Trouble)',
+      },
+      {
+        '<leader>cs',
+        '<cmd>Trouble symbols toggle focus=false<cr>',
+        desc = 'Symbols (Trouble)',
+      },
+      {
+        '<leader>cl',
+        '<cmd>Trouble lsp toggle focus=false win.position=right<cr>',
+        desc = 'LSP Definitions / references / ... (Trouble)',
+      },
+      {
+        '<leader>xL',
+        '<cmd>Trouble loclist toggle<cr>',
+        desc = 'Location List (Trouble)',
+      },
+      {
+        '<leader>xQ',
+        '<cmd>Trouble qflist toggle<cr>',
+        desc = 'Quickfix List (Trouble)',
+      },
+    },
   },
 }
