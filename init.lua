@@ -393,6 +393,7 @@ require('lazy').setup({
           },
           path_display = { 'filename_first' },
           layout_strategy = 'vertical',
+          file_ignore_patterns = { 'node_modules' },
         },
         pickers = {
           buffers = {
@@ -750,6 +751,9 @@ require('lazy').setup({
         if disable_filetypes[vim.bo[bufnr].filetype] then
           lsp_format_opt = 'never'
         else
+          -- NOTE: 'fallback' means if no formatter is configured in formatters_by_ft,
+          -- conform will use LSP formatting (e.g., tsserver for TypeScript).
+          -- To avoid unexpected formatting, explicitly configure formatters below.
           lsp_format_opt = 'fallback'
         end
         return {
@@ -760,6 +764,10 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         svg = { 'prettier' },
+        typescript = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        javascript = { 'prettier' },
+        javascriptreact = { 'prettier' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
