@@ -456,6 +456,11 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- Grep through files that have changes in the current git branch
+      vim.keymap.set('n', '<leader>sc', function()
+        require('custom.pickers.changed_files').grep_changed_files()
+      end, { desc = '[S]earch [C]hanged files in branch' })
     end,
   },
 
