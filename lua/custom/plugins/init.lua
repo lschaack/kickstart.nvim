@@ -6,6 +6,7 @@ require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
 vim.keymap.set('n', '<leader><tab>', '<c-^><cr>', { desc = '[B]ack' })
+vim.keymap.set('n', 'gl', vim.diagnostic.open_float, { desc = 'Show line diagnostics' })
 vim.keymap.set(
   'n',
   'ƒ', -- option + f

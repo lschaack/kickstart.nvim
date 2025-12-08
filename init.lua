@@ -461,6 +461,11 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sc', function()
         require('custom.pickers.changed_files').grep_changed_files()
       end, { desc = '[S]earch [C]hanged files in branch' })
+
+      -- Grep through only the changed lines in the current git branch
+      vim.keymap.set('n', '<leader>sl', function()
+        require('custom.pickers.changed_lines').grep_changed_lines()
+      end, { desc = '[S]earch changed [L]ines in branch' })
     end,
   },
 
