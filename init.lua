@@ -393,6 +393,7 @@ require('lazy').setup({
           },
           path_display = { 'filename_first' },
           layout_strategy = 'vertical',
+          file_ignore_patterns = { 'node_modules' },
         },
         pickers = {
           buffers = {
@@ -455,6 +456,16 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sn', function()
         builtin.find_files { cwd = vim.fn.stdpath 'config' }
       end, { desc = '[S]earch [N]eovim files' })
+
+      -- Grep through files that have changes in the current git branch
+      vim.keymap.set('n', '<leader>sc', function()
+        require('custom.pickers.changed_files').grep_changed_files()
+      end, { desc = '[S]earch [C]hanged files in branch' })
+
+      -- Grep through only the changed lines in the current git branch
+      vim.keymap.set('n', '<leader>sl', function()
+        require('custom.pickers.changed_lines').grep_changed_lines()
+      end, { desc = '[S]earch changed [L]ines in branch' })
     end,
   },
 
@@ -750,6 +761,9 @@ require('lazy').setup({
         if disable_filetypes[vim.bo[bufnr].filetype] then
           lsp_format_opt = 'never'
         else
+          -- NOTE: 'fallback' means if no formatter is configured in formatters_by_ft,
+          -- conform will use LSP formatting (e.g., tsserver for TypeScript).
+          -- To avoid unexpected formatting, explicitly configure formatters below.
           lsp_format_opt = 'fallback'
         end
         return {
@@ -760,25 +774,15 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         svg = { 'prettier' },
+        typescript = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        javascript = { 'prettier' },
+        javascriptreact = { 'prettier' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
-      },
-      formatters = {
-        prettier = {
-          args = {
-            '--stdin-filepath',
-            '$FILENAME',
-            '--parser',
-            'html',
-            '--print-width',
-            '80',
-            '--html-whitespace-sensitivity',
-            'ignore',
-          },
-        },
       },
     },
   },
