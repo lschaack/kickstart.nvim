@@ -538,6 +538,23 @@ require('lazy').setup({
 
         tailwindcss = {},
 
+        ts_ls = {
+          settings = {
+            typescript = {
+              preferences = {
+                importModuleSpecifier = 'non-relative',
+                quotePreference = 'auto',
+              },
+            },
+            javascript = {
+              preferences = {
+                importModuleSpecifier = 'non-relative',
+                quotePreference = 'auto',
+              },
+            },
+          },
+        },
+
         graphql = {},
       },
     },
@@ -701,6 +718,7 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'prettier', -- Used to format SVG and other files
+        'markdownlint',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -778,6 +796,7 @@ require('lazy').setup({
         typescriptreact = { 'prettier' },
         javascript = { 'prettier' },
         javascriptreact = { 'prettier' },
+        markdown = { 'markdownlint' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
