@@ -11,17 +11,17 @@ local function get_claude_path()
     return nil
   end
 
-  -- Get the git root directory
-  local git_root_cmd = string.format('cd %s && git rev-parse --show-toplevel 2>/dev/null', vim.fn.shellescape(vim.fn.fnamemodify(file_path, ':h')))
-  local git_root = vim.fn.trim(vim.fn.system(git_root_cmd))
+  -- Get the current working directory
+  local cwd = vim.fn.getcwd()
 
-  if vim.v.shell_error ~= 0 then
-    print 'Not in a git repository'
+  -- Check if file is under cwd
+  if not vim.startswith(file_path, cwd) then
+    print('File is not under current working directory: ' .. cwd)
     return nil
   end
 
-  -- Get the relative path within the repository
-  local rel_path = string.sub(file_path, string.len(git_root) + 2)
+  -- Get the relative path from cwd
+  local rel_path = string.sub(file_path, string.len(cwd) + 2)
 
   -- Format as Claude Code context path
   return '@' .. rel_path
