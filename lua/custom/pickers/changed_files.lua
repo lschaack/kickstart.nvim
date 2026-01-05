@@ -1,5 +1,10 @@
--- Telescope picker for grepping through git changed files (committed + uncommitted)
+-- Telescope picker for finding git changed files (committed + uncommitted)
 local M = {}
+
+local pickers = require 'telescope.pickers'
+local finders = require 'telescope.finders'
+local conf = require('telescope.config').values
+local make_entry = require 'telescope.make_entry'
 
 -- Detect the default/main branch name
 local function get_default_branch()
@@ -32,8 +37,6 @@ end
 
 -- Open telescope picker for changed files
 function M.grep_changed_files()
-  local builtin = require 'telescope.builtin'
-
   local base_branch = get_default_branch()
   if not base_branch then
     vim.notify('Could not detect default branch (tried main, master, develop, staging)', vim.log.levels.ERROR)
@@ -86,10 +89,18 @@ function M.grep_changed_files()
     return
   end
 
-  builtin.live_grep {
-    search_dirs = changed_files,
-    prompt_title = string.format('Live Grep in Changed Files (%d files vs %s)', #changed_files, base_branch),
-  }
+  -- Create telescope picker for finding files
+  pickers
+    .new({}, {
+      prompt_title = string.format('Changed Files (%d files vs %s)', #changed_files, base_branch),
+      finder = finders.new_table {
+        results = changed_files,
+        entry_maker = make_entry.gen_from_file {},
+      },
+      sorter = conf.file_sorter {},
+      previewer = conf.file_previewer {},
+    })
+    :find()
 end
 
 return M

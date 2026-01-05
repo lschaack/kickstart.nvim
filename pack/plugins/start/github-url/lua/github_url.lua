@@ -60,20 +60,13 @@ local function get_github_url()
     return nil
   end
 
-  -- Get the default branch (usually main or master)
-  local default_branch_cmd =
-    string.format("cd %s && git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'", vim.fn.shellescape(git_root))
-  local default_branch = vim.fn.trim(vim.fn.system(default_branch_cmd))
+  -- Get the currently checked out branch
+  local current_branch_cmd = string.format('cd %s && git rev-parse --abbrev-ref HEAD', vim.fn.shellescape(git_root))
+  local current_branch = vim.fn.trim(vim.fn.system(current_branch_cmd))
 
-  if vim.v.shell_error ~= 0 or default_branch == '' then
-    -- Try to guess if it's main or master
-    local main_exists_cmd = string.format('cd %s && git show-ref --verify --quiet refs/remotes/origin/main', vim.fn.shellescape(git_root))
-    vim.fn.system(main_exists_cmd)
-    if vim.v.shell_error == 0 then
-      default_branch = 'main'
-    else
-      default_branch = 'master' -- Fall back to master if can't determine
-    end
+  if vim.v.shell_error ~= 0 or current_branch == '' then
+    print 'Could not determine current branch'
+    return nil
   end
 
   -- Check if the GitHub instance uses the standard /blob/ URL format
@@ -81,7 +74,7 @@ local function get_github_url()
   local blob_path = '/blob/'
 
   -- Combine to form the GitHub blob URL
-  local full_url = github_url .. blob_path .. default_branch .. '/' .. rel_path
+  local full_url = github_url .. blob_path .. current_branch .. '/' .. rel_path
 
   -- Add line number if cursor is on a specific line
   local current_line = vim.fn.line '.'
