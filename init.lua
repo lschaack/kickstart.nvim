@@ -523,11 +523,31 @@ require('lazy').setup({
 
           local client = vim.lsp.get_client_by_id(event.data.client_id)
 
-          -- ESLint auto-fix on save
+          -- ESLint auto-fix on save (synchronous to complete before write)
           if client and client.name == 'eslint' then
             vim.api.nvim_create_autocmd('BufWritePre', {
               buffer = event.buf,
-              command = 'EslintFixAll',
+              callback = function()
+                local bufnr = vim.api.nvim_get_current_buf()
+                local params = {
+                  textDocument = { uri = vim.uri_from_bufnr(bufnr) },
+                  range = {
+                    start = { line = 0, character = 0 },
+                    ['end'] = { line = vim.api.nvim_buf_line_count(bufnr), character = 0 },
+                  },
+                  context = { only = { 'source.fixAll.eslint' }, diagnostics = {} },
+                }
+                local result = vim.lsp.buf_request_sync(bufnr, 'textDocument/codeAction', params, 3000)
+                for _, res in pairs(result or {}) do
+                  for _, action in pairs(res.result or {}) do
+                    if action.edit then
+                      vim.lsp.util.apply_workspace_edit(action.edit, 'utf-8')
+                    elseif action.command then
+                      vim.lsp.buf.execute_command(action.command)
+                    end
+                  end
+                end
+              end,
             })
           end
 
