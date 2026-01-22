@@ -12,18 +12,8 @@ vim.keymap.set('n', '<M-f>', 'f r<enter>^', { desc = 'Break on next space' })
 vim.keymap.set('c', '<M-r>', 's/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
 vim.keymap.set({ 'n', 'v' }, '<M-r>', ':s/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
 vim.keymap.set('n', '<leader>jk', "oconsole.log('<C-o>p', <C-o>p)<esc>", { desc = 'Paste last yanked text [j]s style' })
--- vim.keymap.set(
---   'n',
---   '<M-j>',
---   '<cmd>cnext<CR>',
---   { desc = 'Go to next quickfix item' }
--- )
--- vim.keymap.set(
---   'n',
---   '<M-k>',
---   '<cmd>cprev<CR>',
---   { desc = 'Go to previous quickfix item' }
--- )
+vim.keymap.set('n', '<M-j>', '<cmd>cnext<CR>', { desc = 'Go to next quickfix item' })
+vim.keymap.set('n', '<M-k>', '<cmd>cprev<CR>', { desc = 'Go to previous quickfix item' })
 
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
@@ -141,63 +131,6 @@ return {
           keymap = '<leader>lt',
           name = 'TODO Comments',
         },
-      },
-    },
-  },
-  {
-    'zbirenbaum/copilot.lua',
-    cmd = 'Copilot',
-    event = 'InsertEnter',
-    config = function()
-      require('copilot').setup {
-        suggestion = {
-          enabled = true,
-          auto_trigger = false,
-          keymap = {
-            accept_word = false,
-            accept_line = false,
-            accept = '«', -- option+\
-            next = '‘', -- option+]
-            prev = '“', -- option+[
-          },
-        },
-      }
-    end,
-  },
-  {
-    'folke/trouble.nvim',
-    opts = {}, -- for default options, refer to the configuration section for custom setup.
-    cmd = 'Trouble',
-    keys = {
-      {
-        '<leader>xx',
-        '<cmd>Trouble diagnostics toggle<cr>',
-        desc = 'Diagnostics (Trouble)',
-      },
-      {
-        '<leader>xX',
-        '<cmd>Trouble diagnostics toggle filter.buf=0<cr>',
-        desc = 'Buffer Diagnostics (Trouble)',
-      },
-      {
-        '<leader>cs',
-        '<cmd>Trouble symbols toggle focus=false<cr>',
-        desc = 'Symbols (Trouble)',
-      },
-      {
-        '<leader>cl',
-        '<cmd>Trouble lsp toggle focus=false win.position=right<cr>',
-        desc = 'LSP Definitions / references / ... (Trouble)',
-      },
-      {
-        '<leader>xL',
-        '<cmd>Trouble loclist toggle<cr>',
-        desc = 'Location List (Trouble)',
-      },
-      {
-        '<leader>xQ',
-        '<cmd>Trouble qflist toggle<cr>',
-        desc = 'Quickfix List (Trouble)',
       },
     },
   },
