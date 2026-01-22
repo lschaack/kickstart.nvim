@@ -44,6 +44,31 @@ return {
       enabled = true,
     },
 
+    completion = {
+      -- Disable auto-inserting parentheses after function completions
+      accept = {
+        auto_brackets = { enabled = false },
+      },
+      menu = {
+        draw = {
+          -- Include label_description to show import paths/sources
+          columns = {
+            { 'kind_icon', 'label', 'label_description', gap = 1 },
+          },
+          components = {
+            label_description = {
+              width = { max = 50 },
+            },
+          },
+        },
+      },
+      -- Auto-show documentation preview for the selected item
+      documentation = {
+        auto_show = true,
+        auto_show_delay_ms = 200,
+      },
+    },
+
     snippets = {
       preset = 'luasnip',
     },
