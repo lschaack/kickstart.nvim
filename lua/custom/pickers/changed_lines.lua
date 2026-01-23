@@ -98,7 +98,8 @@ function M.grep_changed_lines()
   local all_entries = {}
 
   -- Get committed changes
-  local cmd_committed = string.format('git diff -U0 $(git merge-base HEAD %s)...HEAD 2>/dev/null', base_branch)
+  -- Use origin/<branch> to compare against remote tracking branch (requires fetch to stay current)
+  local cmd_committed = string.format('git diff -U0 $(git merge-base HEAD origin/%s)...HEAD 2>/dev/null', base_branch)
   local handle_committed = io.popen(cmd_committed)
   if handle_committed then
     local diff_output = handle_committed:read '*a'
@@ -134,7 +135,7 @@ function M.grep_changed_lines()
   end
 
   if #all_entries == 0 then
-    vim.notify('No changed lines in current branch compared to ' .. base_branch, vim.log.levels.WARN)
+    vim.notify('No changed lines in current branch compared to origin/' .. base_branch, vim.log.levels.WARN)
     return
   end
 
@@ -148,7 +149,7 @@ function M.grep_changed_lines()
   -- Create telescope picker
   pickers
     .new({}, {
-      prompt_title = string.format('Changed Lines (%d lines vs %s)', #entry_strings, base_branch),
+      prompt_title = string.format('Changed Lines (%d lines vs origin/%s)', #entry_strings, base_branch),
       finder = finders.new_table {
         results = entry_strings,
         entry_maker = make_entry.gen_from_vimgrep {},

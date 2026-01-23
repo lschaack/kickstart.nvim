@@ -53,7 +53,8 @@ function M.grep_changed_files()
   git_root_handle:close()
 
   -- Get files changed in commits on the branch
-  local cmd_committed = string.format('git diff --name-only $(git merge-base HEAD %s)...HEAD', base_branch)
+  -- Use origin/<branch> to compare against remote tracking branch (requires fetch to stay current)
+  local cmd_committed = string.format('git diff --name-only $(git merge-base HEAD origin/%s)...HEAD', base_branch)
   local handle_committed = io.popen(cmd_committed)
   local committed_files = {}
   if handle_committed then
@@ -85,14 +86,14 @@ function M.grep_changed_files()
   end
 
   if #changed_files == 0 then
-    vim.notify('No changed files in current branch compared to ' .. base_branch, vim.log.levels.WARN)
+    vim.notify('No changed files in current branch compared to origin/' .. base_branch, vim.log.levels.WARN)
     return
   end
 
   -- Create telescope picker for finding files
   pickers
     .new({}, {
-      prompt_title = string.format('Changed Files (%d files vs %s)', #changed_files, base_branch),
+      prompt_title = string.format('Changed Files (%d files vs origin/%s)', #changed_files, base_branch),
       finder = finders.new_table {
         results = changed_files,
         entry_maker = make_entry.gen_from_file {},
