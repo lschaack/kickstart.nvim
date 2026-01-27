@@ -399,6 +399,10 @@ require('lazy').setup({
           buffers = {
             sort_mru = true,
           },
+          lsp_references = {
+            path_display = { 'truncate' },
+            show_line = false,
+          },
         },
         extensions = {
           ['ui-select'] = {
