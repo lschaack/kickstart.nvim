@@ -44,6 +44,13 @@ vim.api.nvim_create_autocmd('FileType', {
 return {
   'mg979/vim-visual-multi',
   {
+    'sindrets/diffview.nvim',
+    cmd = { 'DiffviewOpen', 'DiffviewFileHistory', 'DiffviewClose' },
+    keys = {
+      { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = '[G]it [D]iffview open' },
+    },
+  },
+  {
     'mikesmithgh/kitty-scrollback.nvim',
     enabled = true,
     lazy = true,
@@ -71,7 +78,12 @@ return {
     name = 'github-url',
     lazy = false,
     config = function()
-      vim.api.nvim_set_keymap('n', '<leader>gu', "<cmd>lua require('github_url').copy_github_url()<CR>", { noremap = true, silent = true })
+      vim.api.nvim_set_keymap(
+        'n',
+        '<leader>gu',
+        "<cmd>lua require('github_url').copy_github_url()<CR>",
+        { noremap = true, silent = true, desc = 'Copy [G]ithub [U]rl' }
+      )
     end,
   },
   {

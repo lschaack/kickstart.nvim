@@ -315,6 +315,7 @@ require('lazy').setup({
       spec = {
         { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
+        { '<leader>g', group = '[G]it' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
@@ -462,14 +463,14 @@ require('lazy').setup({
       end, { desc = '[S]earch [N]eovim files' })
 
       -- Grep through files that have changes in the current git branch
-      vim.keymap.set('n', '<leader>sc', function()
+      vim.keymap.set('n', '<leader>scf', function()
         require('custom.pickers.changed_files').grep_changed_files()
-      end, { desc = '[S]earch [C]hanged files in branch' })
+      end, { desc = '[S]earch [C]hanged [F]iles in branch' })
 
       -- Grep through only the changed lines in the current git branch
-      vim.keymap.set('n', '<leader>sl', function()
+      vim.keymap.set('n', '<leader>scl', function()
         require('custom.pickers.changed_lines').grep_changed_lines()
-      end, { desc = '[S]earch changed [L]ines in branch' })
+      end, { desc = '[S]earch [C]hanged [L]ines in branch' })
     end,
   },
 
