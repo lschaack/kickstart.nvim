@@ -471,6 +471,11 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>scl', function()
         require('custom.pickers.changed_lines').grep_changed_lines()
       end, { desc = '[S]earch [C]hanged [L]ines in branch' })
+
+      -- Pick unmerged files during merge conflict resolution
+      vim.keymap.set('n', '<leader>suf', function()
+        require('custom.pickers.unmerged_files').unmerged_files()
+      end, { desc = '[S]earch [U]nmerged [F]iles' })
     end,
   },
 
