@@ -4,6 +4,48 @@
 
 local M = {}
 
+-- Detect the default/main branch name
+local function get_default_branch(git_root)
+  -- Try to get the default branch from remote HEAD
+  local cmd = string.format('cd %s && git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null', vim.fn.shellescape(git_root))
+  local result = vim.fn.trim(vim.fn.system(cmd))
+  if vim.v.shell_error == 0 and result ~= '' then
+    local branch = string.match(result, 'refs/remotes/origin/(.+)')
+    if branch and branch ~= '' then
+      return branch
+    end
+  end
+
+  -- Fallback: try common branch names
+  local common_branches = { 'main', 'master', 'develop', 'staging' }
+  for _, branch in ipairs(common_branches) do
+    local check_cmd = string.format('cd %s && git rev-parse --verify %s 2>/dev/null', vim.fn.shellescape(git_root), branch)
+    local output = vim.fn.trim(vim.fn.system(check_cmd))
+    if vim.v.shell_error == 0 and output ~= '' then
+      return branch
+    end
+  end
+
+  return nil
+end
+
+-- Get the merge base commit between HEAD and the default branch
+local function get_merge_base_ref(git_root)
+  local default_branch = get_default_branch(git_root)
+  if not default_branch then
+    return nil
+  end
+
+  local cmd = string.format('cd %s && git merge-base HEAD origin/%s 2>/dev/null', vim.fn.shellescape(git_root), default_branch)
+  local merge_base = vim.fn.trim(vim.fn.system(cmd))
+
+  if vim.v.shell_error == 0 and merge_base ~= '' then
+    return merge_base
+  end
+
+  return nil
+end
+
 local function get_github_url()
   -- Get the current file path
   local file_path = vim.fn.expand '%:p'
@@ -60,21 +102,22 @@ local function get_github_url()
     return nil
   end
 
-  -- Get the currently checked out branch
-  local current_branch_cmd = string.format('cd %s && git rev-parse --abbrev-ref HEAD', vim.fn.shellescape(git_root))
-  local current_branch = vim.fn.trim(vim.fn.system(current_branch_cmd))
+  -- Get the merge base ref (stable commit that exists on remote)
+  local ref = get_merge_base_ref(git_root)
 
-  if vim.v.shell_error ~= 0 or current_branch == '' then
-    print 'Could not determine current branch'
-    return nil
+  if not ref then
+    -- Fallback to current branch if merge base cannot be determined
+    local current_branch_cmd = string.format('cd %s && git rev-parse --abbrev-ref HEAD', vim.fn.shellescape(git_root))
+    ref = vim.fn.trim(vim.fn.system(current_branch_cmd))
+
+    if vim.v.shell_error ~= 0 or ref == '' then
+      print 'Could not determine ref for URL'
+      return nil
+    end
   end
 
-  -- Check if the GitHub instance uses the standard /blob/ URL format
-  -- (Some enterprise instances might have different URL structures)
-  local blob_path = '/blob/'
-
   -- Combine to form the GitHub blob URL
-  local full_url = github_url .. blob_path .. current_branch .. '/' .. rel_path
+  local full_url = github_url .. '/blob/' .. ref .. '/' .. rel_path
 
   -- Add line number if cursor is on a specific line
   local current_line = vim.fn.line '.'
