@@ -48,6 +48,48 @@ return {
     cmd = { 'DiffviewOpen', 'DiffviewFileHistory', 'DiffviewClose' },
     keys = {
       { '<leader>gd', '<cmd>DiffviewOpen<cr>', desc = '[G]it [D]iffview open' },
+      { '<leader>gq', '<cmd>DiffviewClose<cr>', desc = '[G]it diffview [Q]uit' },
+    },
+    opts = {
+      view = {
+        merge_tool = {
+          layout = 'diff1_plain',
+        },
+      },
+      keymaps = {
+        view = {
+          { 'n', '<leader>gl', '<cmd>lua require("diffview.actions").cycle_layout()<cr>', { desc = '[G]it diffview cycle [L]ayout' } },
+          -- Remap conflict choose keys behind <leader>g to avoid clash with LSP code action
+          { 'n', '<leader>gco', '<cmd>lua require("diffview.actions").conflict_choose("ours")()<cr>', { desc = 'Choose ours' } },
+          { 'n', '<leader>gct', '<cmd>lua require("diffview.actions").conflict_choose("theirs")()<cr>', { desc = 'Choose theirs' } },
+          { 'n', '<leader>gcb', '<cmd>lua require("diffview.actions").conflict_choose("base")()<cr>', { desc = 'Choose base' } },
+          { 'n', '<leader>gca', '<cmd>lua require("diffview.actions").conflict_choose("all")()<cr>', { desc = 'Choose all' } },
+          { 'n', '<leader>gcO', '<cmd>lua require("diffview.actions").conflict_choose_all("ours")()<cr>', { desc = 'Choose ours (file)' } },
+          { 'n', '<leader>gcT', '<cmd>lua require("diffview.actions").conflict_choose_all("theirs")()<cr>', { desc = 'Choose theirs (file)' } },
+          { 'n', '<leader>gcB', '<cmd>lua require("diffview.actions").conflict_choose_all("base")()<cr>', { desc = 'Choose base (file)' } },
+          { 'n', '<leader>gcA', '<cmd>lua require("diffview.actions").conflict_choose_all("all")()<cr>', { desc = 'Choose all (file)' } },
+          -- Disable defaults
+          { 'n', '<leader>co', false },
+          { 'n', '<leader>ct', false },
+          { 'n', '<leader>cb', false },
+          { 'n', '<leader>ca', false },
+          { 'n', '<leader>cO', false },
+          { 'n', '<leader>cT', false },
+          { 'n', '<leader>cB', false },
+          { 'n', '<leader>cA', false },
+        },
+        file_panel = {
+          { 'n', '<leader>gl', '<cmd>lua require("diffview.actions").cycle_layout()<cr>', { desc = '[G]it diffview cycle [L]ayout' } },
+          { 'n', '<leader>gcO', '<cmd>lua require("diffview.actions").conflict_choose_all("ours")()<cr>', { desc = 'Choose ours (file)' } },
+          { 'n', '<leader>gcT', '<cmd>lua require("diffview.actions").conflict_choose_all("theirs")()<cr>', { desc = 'Choose theirs (file)' } },
+          { 'n', '<leader>gcB', '<cmd>lua require("diffview.actions").conflict_choose_all("base")()<cr>', { desc = 'Choose base (file)' } },
+          { 'n', '<leader>gcA', '<cmd>lua require("diffview.actions").conflict_choose_all("all")()<cr>', { desc = 'Choose all (file)' } },
+          { 'n', '<leader>cO', false },
+          { 'n', '<leader>cT', false },
+          { 'n', '<leader>cB', false },
+          { 'n', '<leader>cA', false },
+        },
+      },
     },
   },
   {
