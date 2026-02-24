@@ -155,52 +155,40 @@ return {
     dir = vim.fn.stdpath 'config' .. '/pack/plugins/start/lemur',
     name = 'lemur',
     lazy = false,
-    opts = {
-      debug = false,
-      highlight = {
-        highlight_group = 'LemurTargets',
-      },
-      pickers = {
-        -- SymbolKind pickers with custom keymaps
-        functions = { kind = 'Function', keymap = '<leader>lf', name = 'Functions' },
-        variables = { kind = 'Variable', keymap = '<leader>lv', name = 'Variables' },
-        classes = { kind = 'Class', keymap = '<leader>lc', name = 'Classes' },
-        methods = { kind = 'Method', keymap = '<leader>lm', name = 'Methods' },
+    config = function()
+      local finders = require 'lemur.finders'
 
-        -- Custom function picker for TODO comments
-        todos = {
-          func = function()
-            local nodes = {}
-            local parser = vim.treesitter.get_parser(0)
-            if not parser then
-              return nodes
-            end
-
-            local tree = parser:parse()[1]
-            if not tree then
-              return nodes
-            end
-
-            local function traverse(node)
-              if node:type() == 'comment' then
-                local text = vim.treesitter.get_node_text(node, 0)
-                if text and (text:match 'TODO' or text:match 'FIXME' or text:match 'NOTE') then
-                  table.insert(nodes, node)
-                end
-              end
-
-              for child in node:iter_children() do
-                traverse(child)
-              end
-            end
-
-            traverse(tree:root())
-            return nodes
-          end,
-          keymap = '<leader>lt',
-          name = 'TODO Comments',
+      require('lemur').setup {
+        debug = false,
+        highlight = {
+          highlight_group = 'LemurTargets',
         },
-      },
-    },
+        finders = {
+          -- LSP symbol finders
+          functions = {
+            finder = finders.lsp_symbols 'Function',
+            keymap = '<leader>lf',
+            name = 'Functions',
+          },
+
+          -- Tree-sitter query finders
+          contexts = {
+            finder = finders.query('context', 'context'),
+            keymap = '<leader>lx',
+            name = 'Contexts',
+          },
+
+          -- Composed finder: TODO comments
+          todos = {
+            finder = finders.filter(finders.node_type 'comment', function(node, bufnr)
+              local text = vim.treesitter.get_node_text(node, bufnr)
+              return text and (text:match 'TODO' or text:match 'FIXME' or text:match 'NOTE')
+            end),
+            keymap = '<leader>lt',
+            name = 'TODO Comments',
+          },
+        },
+      }
+    end,
   },
 }
