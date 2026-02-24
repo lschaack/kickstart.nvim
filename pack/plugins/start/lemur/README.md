@@ -1,422 +1,471 @@
-# Lemur 🐒
+# Lemur
 
-> Semantic code navigation for Neovim using tree-sitter and LSP
+> Composable semantic code navigation for Neovim using tree-sitter and LSP
 
-Lemur is a Neovim plugin that provides **sticky mode navigation** for moving between semantically related code elements. Navigate through functions, variables, classes, or any custom node collection with simple `j`/`k` keys while all targets are highlighted.
+Lemur provides **sticky mode navigation** for moving between semantically related code elements. Its architecture separates **finders** (what to navigate) from **pickers** (how to navigate), inspired by Telescope's composable design. Finders can leverage community-maintained tree-sitter query files to work across dozens of languages with zero language-specific code.
 
-## ✨ Features
+## Quick Start
 
-- **🎯 Sticky Mode Navigation** - Activate a navigation layer, use `j`/`k` to move between nodes
-- **🔍 LSP Integration** - Built-in support for all LSP SymbolKind types (Function, Variable, Class, etc.)
-- **🌳 Tree-sitter Based** - Precise node detection using tree-sitter AST
-- **⚡ Extensible** - Define custom pickers with your own logic
-- **🎨 Visual Highlighting** - All reachable nodes highlighted during navigation
-- **🔧 Configurable** - Minimal setup to full customization
-- **📝 Debug Support** - Built-in logging and debug commands
+1. **Activate a finder** using a keymap (e.g., `<leader>ls` for same-type nodes)
+2. **Cursor jumps** to the nearest matching node
+3. **Navigate** with `j` (next) and `k` (previous)
+4. **Exit** with `<Esc>`
 
-## 🚀 Quick Start
-
-### Basic Usage
-
-1. **Position cursor** anywhere in your code
-2. **Activate picker** using a keymap (e.g., `<leader>lf` for functions)
-3. **Cursor jumps** to the nearest matching node automatically
-4. **Navigate** with `j` (next) and `k` (previous)
-5. **Exit** with `<Esc>`
-
-### Example Workflow
-
-```lua
--- Position cursor anywhere in this file
-function calculateTotal(items) {
-  // other code here...
-}
-
-function processData(data) {
-  // more code...
-}
-
-// Cursor is here somewhere
-function validateInput(input) {
-  // Press <leader>lf to activate function picker
-  // Cursor automatically jumps to nearest function
-  // All functions are highlighted
-  // Use j/k to navigate between them
-  // Press <Esc> to exit sticky mode
-}
-```
-
-## 📦 Installation
+## Installation
 
 ### Requirements
 
-- Neovim 0.8+
-- tree-sitter parsers for your languages
-- LSP server (optional, for SymbolKind pickers)
+- Neovim 0.9+
+- `nvim-treesitter` (required)
+
+Optional dependencies unlock additional finder factories via community-maintained `.scm` query files:
+
+| Plugin | Query File | Languages | Enables |
+|--------|-----------|-----------|---------|
+| `nvim-treesitter` (built-in) | `highlights.scm` | 321 | Return statements, function calls, string literals, type annotations, etc. |
+| `nvim-treesitter` (built-in) | `locals.scm` | 151 | Function/variable/parameter definitions, scopes, references, imports |
+| `nvim-treesitter` (built-in) | `folds.scm` | 217 | All foldable regions (functions, classes, loops, objects) |
+| `nvim-treesitter` (built-in) | `indents.scm` | 166 | Indent boundaries |
+| `nvim-treesitter-context` | `context.scm` | 86 | Structural context nodes (functions, classes, loops, conditionals) |
+| `nvim-treesitter-textobjects` | `textobjects.scm` | 40+ | `@function.outer`, `@class.outer`, `@parameter.outer`, etc. |
 
 ### Using lazy.nvim
 
 ```lua
 {
-  dir = '/path/to/lemur', -- or use a git repo
+  dir = '/path/to/lemur',
   name = 'lemur',
-  opts = {
-    pickers = {
-      functions = { kind = 'Function', keymap = '<leader>lf' },
-      variables = { kind = 'Variable', keymap = '<leader>lv' },
+  config = function()
+    local finders = require 'lemur.finders'
+
+    require('lemur').setup {
+      finders = {
+        functions = {
+          finder = finders.lsp_symbols 'Function',
+          keymap = '<leader>lf',
+          name = 'Functions',
+        },
+      },
     }
-  }
-}
-```
-
-### Manual Setup
-
-```lua
-require('lemur').setup({
-  pickers = {
-    functions = 'Function',
-    variables = 'Variable',
-  }
-})
-```
-
-## 🎯 Built-in Pickers
-
-| Picker | Default Keymap | Description |
-|--------|----------------|-------------|
-| `same_type` | `<leader>ls` | Navigate nodes of same type as cursor |
-
-## 🔧 Configuration
-
-### Minimal Configuration
-
-```lua
-require('lemur').setup({
-  pickers = {
-    functions = 'Function',  -- SymbolKind shorthand
-    variables = 'Variable',
-  }
-})
-```
-
-### Full Configuration
-
-```lua
-require('lemur').setup({
-  debug = false,  -- Enable debug logging
-  
-  highlight = {
-    highlight_group = 'LemurTargets',  -- Highlight group for nodes
-  },
-  
-  pickers = {
-    -- SymbolKind pickers (string shorthand)
-    functions = 'Function',
-    variables = 'Variable',
-    classes = 'Class',
-    methods = 'Method',
-    
-    -- SymbolKind with custom configuration
-    constructors = {
-      kind = 'Constructor',
-      keymap = '<leader>lc',
-      name = 'Constructors'
-    },
-    
-    -- Custom function picker
-    todos = {
-      func = function()
-        local nodes = {}
-        local parser = vim.treesitter.get_parser(0)
-        if not parser then return nodes end
-        
-        local tree = parser:parse()[1]
-        if not tree then return nodes end
-        
-        local function traverse(node)
-          if node:type() == 'comment' then
-            local text = vim.treesitter.get_node_text(node, 0)
-            if text and (text:match('TODO') or text:match('FIXME')) then
-              table.insert(nodes, node)
-            end
-          end
-          for child in node:iter_children() do
-            traverse(child)
-          end
-        end
-        
-        traverse(tree:root())
-        return nodes
-      end,
-      keymap = '<leader>lt',
-      name = 'TODO Comments'
-    },
-    
-    -- Override built-in pickers
-    same_type = { keymap = '<leader>ls', name = 'Same Type Nodes' },
-    
-    -- Disable unwanted pickers
-    unwanted_picker = false,
-  }
-})
-```
-
-## 📚 API Reference
-
-### Setup Options
-
-#### `debug` (boolean)
-Enable debug logging with detailed action information.
-```lua
-debug = true  -- Shows detailed logs for troubleshooting
-```
-
-#### `highlight` (table)
-Configure visual highlighting options.
-```lua
-highlight = {
-  highlight_group = 'LemurTargets'  -- Vim highlight group name
-}
-```
-
-#### `pickers` (table)
-Define navigation pickers. See [Picker Configuration](#picker-configuration).
-
-### Picker Configuration
-
-#### SymbolKind Shorthand
-```lua
-pickers = {
-  functions = 'Function',  -- Maps to vim.lsp.protocol.SymbolKind.Function
-  variables = 'Variable',
-}
-```
-
-#### SymbolKind with Options
-```lua
-pickers = {
-  methods = {
-    kind = 'Method',              -- LSP SymbolKind
-    keymap = '<leader>lm',        -- Key binding
-    name = 'Class Methods'        -- Display name
-  }
-}
-```
-
-#### Custom Function Picker
-```lua
-pickers = {
-  custom_picker = {
-    func = function()
-      -- Must return array of tree-sitter nodes
-      return collect_your_nodes()
-    end,
-    keymap = '<leader>lx',
-    name = 'Custom Nodes'
-  }
-}
-```
-
-### Available SymbolKind Values
-
-- `File`, `Module`, `Namespace`, `Package`
-- `Class`, `Method`, `Property`, `Field`, `Constructor`
-- `Enum`, `Interface`, `Function`, `Variable`, `Constant`
-- `String`, `Number`, `Boolean`, `Array`, `Object`
-- `Key`, `Null`, `EnumMember`, `Struct`, `Event`
-- `Operator`, `TypeParameter`
-
-### Runtime API
-
-#### Register Pickers Programmatically
-
-```lua
-local lemur = require('lemur')
-
--- Register SymbolKind picker
-lemur.register_picker('constants', {
-  kind = 'Constant',
-  keymap = '<leader>lc',
-  name = 'Constants'
-})
-
--- Register custom function picker
-lemur.register_picker('imports', {
-  func = function()
-    return collect_import_statements()
   end,
-  keymap = '<leader>li'
+}
+```
+
+## Architecture
+
+### Finders
+
+A **finder** is a callable that returns a sorted list of tree-sitter nodes for the current buffer. Finder factories create finders:
+
+```lua
+local finders = require 'lemur.finders'
+
+-- From tree-sitter queries (leverages community .scm files)
+finders.query('locals', 'local.definition.function')
+finders.query('context', 'context')
+finders.query('textobjects', 'function.outer')
+
+-- From LSP document symbols
+finders.lsp_symbols 'Function'
+finders.lsp_symbols 'Class'
+
+-- From node type (static)
+finders.node_type 'function_declaration'
+
+-- From cursor node type (dynamic, determined at call time)
+finders.cursor_type()
+
+-- Custom function
+finders.custom(function(bufnr)
+  -- return list of tree-sitter nodes
+end)
+
+-- Composition
+finders.union(finder_a, finder_b)        -- combine results
+finders.filter(finder, predicate_fn)     -- filter nodes
+finders.intersect(finder_a, finder_b)    -- nodes in both
+```
+
+### Pickers
+
+A **picker** defines how the user interacts with finder results. The built-in picker is sticky mode:
+
+```lua
+local pickers = require 'lemur.pickers'
+
+pickers.sticky()                                    -- default highlight
+pickers.sticky { highlight_group = 'LemurContexts' } -- custom highlight
+```
+
+A picker implements:
+- `activate(nodes, name)` -- enter the picker UI
+- `deactivate()` -- exit the picker UI
+- `is_active()` -- returns boolean
+
+### Registration
+
+Finders are registered with keymaps in `setup()`. Each can optionally override the default picker:
+
+```lua
+require('lemur').setup {
+  picker = pickers.sticky(),  -- default picker for all finders
+
+  finders = {
+    my_finder = {
+      finder = finders.query('locals', 'local.scope'),
+      keymap = '<leader>lo',
+      name = 'Scopes',
+      picker = pickers.sticky { highlight_group = 'Special' },  -- override
+    },
+  },
+}
+```
+
+## Configuration
+
+### Full Example
+
+```lua
+local finders = require 'lemur.finders'
+local pickers = require 'lemur.pickers'
+
+require('lemur').setup {
+  debug = false,
+
+  highlight = {
+    highlight_group = 'LemurTargets',
+  },
+
+  picker = pickers.sticky(),
+
+  finders = {
+    -- LSP symbol finders
+    functions = {
+      finder = finders.lsp_symbols 'Function',
+      keymap = '<leader>lf',
+      name = 'Functions',
+    },
+    classes = {
+      finder = finders.lsp_symbols 'Class',
+      keymap = '<leader>lc',
+      name = 'Classes',
+    },
+
+    -- Tree-sitter query finders
+    contexts = {
+      finder = finders.query('context', 'context'),
+      keymap = '<leader>lx',
+      name = 'Contexts',
+    },
+    definitions = {
+      finder = finders.union(
+        finders.query('locals', 'local.definition.function'),
+        finders.query('locals', 'local.definition.method')
+      ),
+      keymap = '<leader>ld',
+      name = 'Definitions',
+    },
+
+    -- Composed finders
+    todos = {
+      finder = finders.filter(
+        finders.node_type 'comment',
+        function(node, bufnr)
+          local text = vim.treesitter.get_node_text(node, bufnr)
+          return text:match 'TODO' or text:match 'FIXME'
+        end
+      ),
+      keymap = '<leader>lt',
+      name = 'TODO Comments',
+    },
+  },
+}
+```
+
+### Built-in Finder
+
+| Name | Default Keymap | Description |
+|------|---------------|-------------|
+| `same_type` | `<leader>ls` | All nodes matching the type under cursor |
+
+## Available Query Groups
+
+The `finders.query(group, capture)` factory can use any `.scm` query file shipped with tree-sitter plugins. Below is a reference of captures available from each query group.
+
+### `highlights.scm` (321 languages)
+
+Shipped with nvim-treesitter. Every semantic token type is a capture.
+
+| Capture | Description |
+|---------|-------------|
+| `keyword.return` | Return statements |
+| `keyword.conditional` | `if`, `else`, `switch`, `case` |
+| `keyword.repeat` | `for`, `while`, `repeat`, `do` |
+| `function.call` | Function/method call sites |
+| `string` | String literals |
+| `comment` | Comments |
+| `type` | Type identifiers and annotations |
+| `type.builtin` | Built-in types (`Object`, `String`, `Array`, etc.) |
+| `constant` | `CONSTANT_CASE` identifiers |
+| `variable.builtin` | Built-in variables (`arguments`, `self`, `this`, etc.) |
+| `function` | Function names at definition sites |
+| `variable.parameter` | Function parameter names |
+| `operator` | Operators (`+`, `-`, `=`, etc.) |
+| `number` | Numeric literals |
+| `boolean` | `true`/`false` |
+
+### `locals.scm` (151 languages)
+
+Shipped with nvim-treesitter. Scope and definition tracking.
+
+| Capture | Description |
+|---------|-------------|
+| `local.definition.function` | Function definitions |
+| `local.definition.method` | Method definitions |
+| `local.definition.var` | Variable definitions |
+| `local.definition.parameter` | Function parameters |
+| `local.definition.import` | Import statements (JS/TS) |
+| `local.definition.associated` | Associated definitions (e.g., `M.foo`) |
+| `local.reference` | All identifier references |
+| `local.scope` | Scope boundaries (blocks, functions, loops, catch) |
+
+### `folds.scm` (217 languages)
+
+Shipped with nvim-treesitter. Foldable code regions.
+
+| Capture | Description |
+|---------|-------------|
+| `fold` | All foldable regions -- functions, classes, loops, conditionals, objects, interfaces, enums |
+
+### `context.scm` (86 languages)
+
+Requires [nvim-treesitter-context](https://github.com/nvim-treesitter/nvim-treesitter-context).
+
+| Capture | Description |
+|---------|-------------|
+| `context` | Structural context nodes -- functions, classes, methods, loops, conditionals, switch cases, object literals |
+| `context.end` | End/closing node of a context block |
+
+### `textobjects.scm` (40+ languages)
+
+Requires [nvim-treesitter-textobjects](https://github.com/nvim-treesitter/nvim-treesitter-textobjects).
+
+| Capture | Description |
+|---------|-------------|
+| `function.outer` | Entire function (signature + body) |
+| `function.inner` | Function body only |
+| `class.outer` | Entire class |
+| `class.inner` | Class body only |
+| `parameter.outer` | Parameter with separator |
+| `parameter.inner` | Parameter value only |
+| `conditional.outer` | Entire if/else block |
+| `conditional.inner` | Conditional body |
+| `loop.outer` | Entire loop |
+| `loop.inner` | Loop body |
+| `call.outer` | Entire function call |
+| `call.inner` | Call arguments only |
+| `comment.outer` | Entire comment block |
+| `block.outer` | Code block |
+| `block.inner` | Block contents |
+| `return.outer` | Entire return statement |
+| `return.inner` | Return value |
+| `assignment.outer` | Entire assignment |
+| `assignment.lhs` | Left-hand side |
+| `assignment.rhs` | Right-hand side |
+
+### `indents.scm` (166 languages)
+
+Shipped with nvim-treesitter. Indentation boundaries.
+
+| Capture | Description |
+|---------|-------------|
+| `indent.begin` | Start of indented region |
+| `indent.end` | End of indented region |
+| `indent.branch` | Branch-like structures (`else`, `end`, `}`) |
+
+## Finder Recipes
+
+### Cross-language definitions (151 languages, no LSP required)
+
+```lua
+definitions = {
+  finder = finders.union(
+    finders.query('locals', 'local.definition.function'),
+    finders.query('locals', 'local.definition.method')
+  ),
+  keymap = '<leader>ld',
+  name = 'Definitions',
+},
+```
+
+### All scope boundaries
+
+```lua
+scopes = {
+  finder = finders.query('locals', 'local.scope'),
+  keymap = '<leader>lo',
+  name = 'Scopes',
+},
+```
+
+### All foldable regions
+
+```lua
+folds = {
+  finder = finders.query('folds', 'fold'),
+  keymap = '<leader>lz',
+  name = 'Folds',
+},
+```
+
+### Return statements
+
+```lua
+returns = {
+  finder = finders.query('highlights', 'keyword.return'),
+  keymap = '<leader>lr',
+  name = 'Returns',
+},
+```
+
+### Function call sites
+
+```lua
+calls = {
+  finder = finders.query('highlights', 'function.call'),
+  keymap = '<leader>lk',
+  name = 'Calls',
+},
+```
+
+### Structural contexts (functions, classes, loops, conditionals)
+
+Requires `nvim-treesitter-context`.
+
+```lua
+contexts = {
+  finder = finders.query('context', 'context'),
+  keymap = '<leader>lx',
+  name = 'Contexts',
+},
+```
+
+### Text object regions
+
+Requires `nvim-treesitter-textobjects`.
+
+```lua
+text_functions = {
+  finder = finders.query('textobjects', 'function.outer'),
+  keymap = '<leader>lf',
+  name = 'Functions',
+},
+```
+
+### Combining LSP + tree-sitter
+
+```lua
+all_functions = {
+  finder = finders.union(
+    finders.lsp_symbols 'Function',
+    finders.lsp_symbols 'Method'
+  ),
+  keymap = '<leader>lf',
+  name = 'All Functions',
+},
+```
+
+### Filtering with a predicate
+
+```lua
+exported = {
+  finder = finders.filter(
+    finders.query('locals', 'local.definition.function'),
+    function(node, bufnr)
+      local text = vim.treesitter.get_node_text(node, bufnr)
+      return text:match '^export'
+    end
+  ),
+  keymap = '<leader>le',
+  name = 'Exports',
+},
+```
+
+## Programmatic API
+
+```lua
+local lemur = require 'lemur'
+local finders = require 'lemur.finders'
+
+-- Register at runtime
+lemur.register('my_finder', {
+  finder = finders.query('locals', 'local.scope'),
+  keymap = '<leader>lx',
+  name = 'Scopes',
 })
+
+-- Activate by name
+lemur.activate 'functions'
+
+-- Execute a finder directly
+local nodes = finders.lsp_symbols('Variable')(0)
 ```
 
-#### Get and Execute Pickers
+### Available SymbolKind Values (for `finders.lsp_symbols`)
+
+`File`, `Module`, `Namespace`, `Package`, `Class`, `Method`, `Property`, `Field`, `Constructor`, `Enum`, `Interface`, `Function`, `Variable`, `Constant`, `String`, `Number`, `Boolean`, `Array`, `Object`, `Key`, `Null`, `EnumMember`, `Struct`, `Event`, `Operator`, `TypeParameter`
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `:LemurToggleDebug` | Toggle debug logging |
+| `:LemurLogs` | Show debug log history |
+| `:LemurClearLogs` | Clear debug logs |
+| `:LemurClearSticky` | Exit sticky mode |
+
+## Backward Compatibility
+
+The old `pickers` config key is still accepted and automatically converted to the new `finders` API:
 
 ```lua
--- Get picker function
-local picker_func = lemur.get_picker('functions')
-if picker_func then
-  picker_func()  -- Activate sticky mode
-end
-
--- Check if picker exists
-if lemur.picker_registry['my_picker'] then
-  -- Picker is available
-end
-```
-
-### Commands
-
-- `:LemurToggleDebug` - Toggle debug logging
-- `:LemurLogs` - Show debug log history  
-- `:LemurClearLogs` - Clear debug logs
-- `:LemurClearSticky` - Manually exit sticky mode
-
-## 🎮 Default Keymaps
-
-During sticky mode:
-- `j` - Move to next node
-- `k` - Move to previous node
-- `<Esc>` - Exit sticky mode
-
-## 🧩 Examples
-
-### Language-Specific Navigation
-
-```lua
--- TypeScript/JavaScript setup
-pickers = {
-  functions = { kind = 'Function', keymap = '<leader>lf' },
-  classes = { kind = 'Class', keymap = '<leader>lc' },
-  interfaces = { kind = 'Interface', keymap = '<leader>li' },
-  methods = { kind = 'Method', keymap = '<leader>lm' },
+-- Old API (still works)
+require('lemur').setup {
+  pickers = {
+    functions = { kind = 'Function', keymap = '<leader>lf' },
+    todos = { func = my_function, keymap = '<leader>lt' },
+  },
 }
 
--- Python setup  
-pickers = {
-  functions = { kind = 'Function', keymap = '<leader>lf' },
-  classes = { kind = 'Class', keymap = '<leader>lc' },
-  variables = { kind = 'Variable', keymap = '<leader>lv' },
-}
-
--- Go setup
-pickers = {
-  functions = { kind = 'Function', keymap = '<leader>lf' },
-  structs = { kind = 'Struct', keymap = '<leader>ls' },
-  interfaces = { kind = 'Interface', keymap = '<leader>li' },
-  methods = { kind = 'Method', keymap = '<leader>lm' },
+-- New API (preferred)
+require('lemur').setup {
+  finders = {
+    functions = {
+      finder = finders.lsp_symbols 'Function',
+      keymap = '<leader>lf',
+      name = 'Functions',
+    },
+  },
 }
 ```
 
-### Custom Picker Examples
+## Troubleshooting
 
-#### Error Handling Nodes
-```lua
-pickers = {
-  error_handling = {
-    func = function()
-      local nodes = {}
-      -- Collect try/catch, error returns, etc.
-      -- Implementation depends on language
-      return nodes
-    end,
-    keymap = '<leader>le',
-    name = 'Error Handling'
-  }
-}
-```
-
-#### Import Statements
-```lua
-pickers = {
-  imports = {
-    func = function()
-      local nodes = {}
-      local parser = vim.treesitter.get_parser(0)
-      if not parser then return nodes end
-      
-      local query = vim.treesitter.query.parse(
-        parser:lang(),
-        '(import_statement) @import'
-      )
-      
-      for id, node in query:iter_captures(parser:parse()[1]:root(), 0) do
-        table.insert(nodes, node)
-      end
-      
-      return nodes
-    end,
-    keymap = '<leader>li',
-    name = 'Imports'
-  }
-}
-```
-
-## 🔍 How It Works
-
-1. **Picker Activation** - When you trigger a picker, Lemur:
-   - Collects relevant nodes (via LSP or custom function)
-   - Finds the nearest node to your cursor position
-   - Jumps to the nearest node (unless cursor is already exactly on a picked node)
-   - Highlights all nodes in the buffer
-   - Sets up temporary keymaps for navigation
-
-2. **LSP Integration** - For SymbolKind pickers, Lemur:
-   - Requests document symbols from LSP server
-   - Filters by the specified SymbolKind
-   - Maps LSP ranges to tree-sitter nodes
-
-3. **Navigation** - During sticky mode:
-   - `j`/`k` move cursor between collected nodes
-   - Navigation wraps around (end → beginning)
-   - All nodes remain highlighted
-
-4. **Exit** - When exiting sticky mode:
-   - Clears all highlights
-   - Removes temporary keymaps
-   - Returns to normal editing
-
-## 🐛 Troubleshooting
-
-### LSP Pickers Not Working
-
-- **Check LSP Status**: `:LspInfo` to verify LSP server is running
-- **Enable Debug**: `debug = true` in setup to see detailed logs
-- **Check SymbolKind**: Some servers don't support all SymbolKind types
-
-### No Nodes Found
+### No nodes found
 
 - **Tree-sitter**: Verify parser is installed (`:TSInstall <language>`)
-- **LSP Symbols**: Some files may not have symbols of the requested type
-- **Custom Pickers**: Check your function returns valid tree-sitter nodes
+- **Query finders**: Check the query file exists for your language (`:echo nvim_get_runtime_file('queries/<lang>/locals.scm', v:false)`)
+- **LSP finders**: Verify LSP is running (`:LspInfo`)
+- **Enable debug**: Set `debug = true` in setup, then check `:LemurLogs`
 
-### Highlighting Issues
+### Highlighting issues
 
-- **Colorscheme**: Define `LemurTargets` highlight group in your colorscheme
-- **Manual Override**: 
-  ```lua
-  vim.api.nvim_set_hl(0, 'LemurTargets', { bg = '#3e4451', fg = '#abb2bf' })
-  ```
+Override the default highlight group in your colorscheme:
 
-### Debug Commands
-
-```vim
-:LemurToggleDebug    " Enable detailed logging
-:LemurLogs           " View recent debug logs  
-:LemurClearLogs      " Clear log history
+```lua
+vim.api.nvim_set_hl(0, 'LemurTargets', { bg = '#3e4451', fg = '#abb2bf' })
 ```
 
-## 🤝 Contributing
+## License
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
----
-
-*Happy navigating! 🐒*
+MIT

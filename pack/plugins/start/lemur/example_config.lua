@@ -1,87 +1,107 @@
--- Example configuration demonstrating the extensible picker system
--- This file shows how to configure Lemur with various picker types
+-- Example configuration demonstrating the finder/picker architecture
+-- This file shows how to configure Lemur with various finder types
 
-local lemur = require('lemur')
+local finders = require 'lemur.finders'
+local pickers = require 'lemur.pickers'
 
--- Example custom picker function
-local function collect_todo_comments()
-  local nodes = {}
-  local parser = vim.treesitter.get_parser(0)
-  if not parser then return nodes end
-  
-  local tree = parser:parse()[1]
-  if not tree then return nodes end
-  
-  local function traverse(node)
-    if node:type() == 'comment' then
-      local text = vim.treesitter.get_node_text(node, 0)
-      if text and (text:match('TODO') or text:match('FIXME') or text:match('NOTE')) then
-        table.insert(nodes, node)
-      end
-    end
-    
-    for child in node:iter_children() do
-      traverse(child)
-    end
-  end
-  
-  traverse(tree:root())
-  return nodes
-end
+require('lemur').setup {
+  debug = false,
 
--- Example setup with various picker configurations
-lemur.setup({
-  debug = false, -- Set to true to see debug logs
-  
-  pickers = {
-    -- SymbolKind pickers (string shorthand)
-    functions = 'Function',
-    variables = 'Variable',
-    classes = 'Class',
-    
-    -- SymbolKind picker with custom keymap
-    methods = { 
-      kind = 'Method', 
+  highlight = {
+    highlight_group = 'LemurTargets',
+  },
+
+  -- Default picker used when none specified per-finder
+  picker = pickers.sticky(),
+
+  finders = {
+    -- LSP symbol finders
+    functions = {
+      finder = finders.lsp_symbols 'Function',
+      keymap = '<leader>lf',
+      name = 'Functions',
+    },
+    variables = {
+      finder = finders.lsp_symbols 'Variable',
+      keymap = '<leader>lv',
+      name = 'Variables',
+    },
+    classes = {
+      finder = finders.lsp_symbols 'Class',
+      keymap = '<leader>lc',
+      name = 'Classes',
+    },
+    methods = {
+      finder = finders.lsp_symbols 'Method',
       keymap = '<leader>lm',
-      name = 'Class Methods'
+      name = 'Methods',
     },
-    
-    -- Custom function picker
+
+    -- Tree-sitter query finders (cross-language, no LSP required)
+    definitions = {
+      finder = finders.union(finders.query('locals', 'local.definition.function'), finders.query('locals', 'local.definition.method')),
+      keymap = '<leader>ld',
+      name = 'Definitions',
+    },
+    scopes = {
+      finder = finders.query('locals', 'local.scope'),
+      keymap = '<leader>lo',
+      name = 'Scopes',
+    },
+    contexts = {
+      finder = finders.query('context', 'context'),
+      keymap = '<leader>lx',
+      name = 'Contexts',
+    },
+
+    -- Composed finder with filter
     todos = {
-      func = collect_todo_comments,
+      finder = finders.filter(finders.node_type 'comment', function(node, bufnr)
+        local text = vim.treesitter.get_node_text(node, bufnr)
+        return text and (text:match 'TODO' or text:match 'FIXME' or text:match 'NOTE')
+      end),
       keymap = '<leader>lt',
-      name = 'TODO Comments'
+      name = 'TODO Comments',
     },
-    
-    -- Override default same_type picker keymap
-    same_type = { keymap = '<leader>ls' },
-    
-    -- Disable a picker (if it was previously defined)
-    -- unwanted_picker = false,
-  }
+
+    -- Per-finder picker override
+    folds = {
+      finder = finders.query('folds', 'fold'),
+      keymap = '<leader>lz',
+      name = 'Folds',
+      picker = pickers.sticky { highlight_group = 'LemurFolds' },
+    },
+
+    -- Override default same_type keymap
+    same_type = {
+      finder = finders.cursor_type(),
+      keymap = '<leader>ls',
+      name = 'Same Type',
+    },
+  },
+}
+
+-- Register a finder at runtime
+local lemur = require 'lemur'
+
+lemur.register('returns', {
+  finder = finders.query('highlights', 'keyword.return'),
+  keymap = '<leader>lr',
+  name = 'Returns',
 })
 
--- Example of registering a picker at runtime
-lemur.register_picker('constants', {
-  kind = 'Constant',
-  keymap = '<leader>lc',
-  name = 'Constants'
-})
-
--- Example of using a picker programmatically
-local function test_picker_programmatically()
-  local picker_func = lemur.get_picker('functions')
-  if picker_func then
-    picker_func() -- This will activate sticky mode for functions
-  else
-    print('Functions picker not found')
-  end
+-- Activate a finder programmatically
+local function test_programmatic()
+  lemur.activate 'functions'
 end
 
--- You can call this function to test programmatic picker usage
--- test_picker_programmatically()
+-- Execute a finder directly (returns nodes without activating a picker)
+local function test_direct()
+  local nodes = finders.lsp_symbols 'Variable'(0)
+  print('Found ' .. #nodes .. ' variable nodes')
+end
 
 return {
-  collect_todo_comments = collect_todo_comments,
-  test_picker_programmatically = test_picker_programmatically,
+  test_programmatic = test_programmatic,
+  test_direct = test_direct,
 }

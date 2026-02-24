@@ -1,87 +1,85 @@
--- Integration test for the extensible picker system
+-- Integration test for the finder/picker architecture
 -- Run this in Neovim to test the new functionality
 
-local lemur = require('lemur')
+local lemur = require 'lemur'
+local finders = require 'lemur.finders'
 
--- Test function to validate the picker system
-local function test_extensible_system()
-  print('=== Testing Lemur Extensible Picker System ===')
-  
-  -- Test 1: Basic setup with SymbolKind pickers
-  lemur.setup({
-    debug = true, -- Enable debug to see what's happening
-    pickers = {
-      -- Test string shorthand
-      test_functions = 'Function',
-      
-      -- Test explicit config
-      test_variables = {
-        kind = 'Variable',
-        keymap = '<leader>ltv',
-        name = 'Test Variables'
+local function test_finder_system()
+  print '=== Testing Lemur Finder/Picker System ==='
+
+  -- Test 1: Setup with various finder types
+  lemur.setup {
+    debug = true,
+    finders = {
+      test_functions = {
+        finder = finders.lsp_symbols 'Function',
+        keymap = '<leader>ltf',
+        name = 'Test Functions',
       },
-      
-      -- Test custom function picker
+      test_variables = {
+        finder = finders.lsp_symbols 'Variable',
+        keymap = '<leader>ltv',
+        name = 'Test Variables',
+      },
       test_custom = {
-        func = function()
-          print('Custom picker function called!')
-          -- Return some dummy nodes for testing
-          local parser = vim.treesitter.get_parser(0)
+        finder = finders.custom(function(bufnr)
+          local parser = vim.treesitter.get_parser(bufnr)
           if parser then
             local tree = parser:parse()[1]
             if tree then
-              return { tree:root():child(0) } -- Return first child as test
+              return { tree:root():child(0) }
             end
           end
           return {}
-        end,
+        end),
         keymap = '<leader>ltc',
-        name = 'Test Custom Picker'
+        name = 'Test Custom',
       },
-      
-      -- Test overriding same_type
-      same_type = { keymap = '<leader>lts' }
-    }
-  })
-  
-  print('✓ Setup completed')
-  
+      same_type = {
+        finder = finders.cursor_type(),
+        keymap = '<leader>lts',
+        name = 'Same Type (overridden)',
+      },
+    },
+  }
+
+  print '  Setup completed'
+
   -- Test 2: Check registry contents
-  print('\n--- Registry Contents ---')
-  for name, config in pairs(lemur.picker_registry) do
-    print(string.format('  %s: %s (type: %s)', name, config.name or 'N/A', config.type or 'unknown'))
+  print '\n--- Registry Contents ---'
+  for name, entry in pairs(lemur._registry) do
+    print(string.format('  %s: %s', name, entry.name))
   end
-  
+
   -- Test 3: Runtime registration
-  lemur.register_picker('runtime_test', {
-    kind = 'Class',
+  lemur.register('runtime_test', {
+    finder = finders.lsp_symbols 'Class',
     keymap = '<leader>ltr',
-    name = 'Runtime Test Classes'
+    name = 'Runtime Test Classes',
   })
-  print('✓ Runtime registration completed')
-  
-  -- Test 4: Programmatic picker retrieval
-  local test_picker = lemur.get_picker('test_functions')
-  if test_picker then
-    print('✓ Picker retrieval works')
-  else
-    print('✗ Failed to retrieve picker')
-  end
-  
-  -- Test 5: Check if keymaps were registered
-  print('\n--- Keymap Tests ---')
-  print('Try these keymaps:')
-  print('  <leader>ltv - Test Variables picker')
-  print('  <leader>ltc - Test Custom picker')
-  print('  <leader>lts - Same Type picker (overridden)')
-  print('  <leader>ltr - Runtime Test picker')
-  
-  print('\n=== Test Completed ===')
-  print('Use :LemurToggleDebug to toggle debug mode')
-  print('Use :LemurLogs to see debug logs')
+  print '  Runtime registration completed'
+
+  -- Test 4: Direct finder execution
+  local cursor_finder = finders.cursor_type()
+  local nodes = cursor_finder(0)
+  print(string.format('  cursor_type finder returned %d nodes', #nodes))
+
+  -- Test 5: Composition
+  local combined = finders.union(finders.lsp_symbols 'Function', finders.lsp_symbols 'Method')
+  local combined_nodes = combined(0)
+  print(string.format('  union finder returned %d nodes', #combined_nodes))
+
+  print '\n--- Keymap Tests ---'
+  print 'Try these keymaps:'
+  print '  <leader>ltf - Test Functions'
+  print '  <leader>ltv - Test Variables'
+  print '  <leader>ltc - Test Custom'
+  print '  <leader>lts - Same Type (overridden)'
+  print '  <leader>ltr - Runtime Test Classes'
+
+  print '\n=== Test Completed ==='
 end
 
--- Export test function
 return {
-  test = test_extensible_system
+  test = test_finder_system,
 }
