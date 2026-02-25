@@ -6,7 +6,7 @@ Lemur provides **sticky mode navigation** for moving between semantically relate
 
 ## Quick Start
 
-1. **Activate a finder** using a keymap (e.g., `<leader>ls` for same-type nodes)
+1. **Activate a finder** using a keymap (e.g., `<leader>ls` for scope boundaries)
 2. **Cursor jumps** to the nearest matching node
 3. **Navigate** with `j` (next) and `k` (previous)
 4. **Exit** with `<Esc>`
@@ -186,7 +186,7 @@ require('lemur').setup {
 
 | Name | Default Keymap | Description |
 |------|---------------|-------------|
-| `same_type` | `<leader>ls` | All nodes matching the type under cursor |
+| `scopes` | `<leader>ls` | Scope boundaries (functions, blocks, loops, catch clauses) via `locals.scm` |
 
 ## Available Query Groups
 

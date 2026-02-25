@@ -59,6 +59,7 @@ local function create(opts)
     state.picker_name = ''
 
     util.clear_highlights()
+    vim.cmd 'echo ""'
 
     for _, keymap in ipairs(state.keymaps) do
       pcall(vim.keymap.del, 'n', keymap, { buffer = 0 })

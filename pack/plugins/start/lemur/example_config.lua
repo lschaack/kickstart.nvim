@@ -72,11 +72,11 @@ require('lemur').setup {
       picker = pickers.sticky { highlight_group = 'LemurFolds' },
     },
 
-    -- Override default same_type keymap
-    same_type = {
-      finder = finders.cursor_type(),
+    -- Override default scopes keymap
+    scopes = {
+      finder = finders.query('locals', 'local.scope'),
       keymap = '<leader>ls',
-      name = 'Same Type',
+      name = 'Scopes',
     },
   },
 }

@@ -141,16 +141,16 @@ function M.setup(opts)
   M._default_picker = opts.picker or pickers_mod.sticky { highlight_group = M.config.highlight.highlight_group }
   M.config.picker = M._default_picker
 
-  -- Register built-in same_type finder
-  local same_type_keymap = '<leader>ls'
+  -- Register built-in scopes finder
+  local scopes_keymap = '<leader>ls'
   if opts.keymaps and opts.keymaps.same_type_picker then
-    same_type_keymap = opts.keymaps.same_type_picker
+    scopes_keymap = opts.keymaps.same_type_picker
   end
 
-  M.register('same_type', {
-    finder = finders_mod.cursor_type(),
-    keymap = same_type_keymap,
-    name = 'Same Type',
+  M.register('scopes', {
+    finder = finders_mod.query('locals', 'local.scope'),
+    keymap = scopes_keymap,
+    name = 'Scopes',
   })
 
   -- Process finders config (new API)

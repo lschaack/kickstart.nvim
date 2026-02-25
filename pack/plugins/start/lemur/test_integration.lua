@@ -35,10 +35,10 @@ local function test_finder_system()
         keymap = '<leader>ltc',
         name = 'Test Custom',
       },
-      same_type = {
-        finder = finders.cursor_type(),
+      scopes = {
+        finder = finders.query('locals', 'local.scope'),
         keymap = '<leader>lts',
-        name = 'Same Type (overridden)',
+        name = 'Scopes (overridden)',
       },
     },
   }
@@ -74,7 +74,7 @@ local function test_finder_system()
   print '  <leader>ltf - Test Functions'
   print '  <leader>ltv - Test Variables'
   print '  <leader>ltc - Test Custom'
-  print '  <leader>lts - Same Type (overridden)'
+  print '  <leader>lts - Scopes (overridden)'
   print '  <leader>ltr - Runtime Test Classes'
 
   print '\n=== Test Completed ==='

@@ -75,7 +75,7 @@ The configuration follows a modular approach:
 - `<space>st` - Open terminal in split
 
 ### Lemur Plugin Keymaps
-- `<leader>ls` - Toggle sticky mode for same-type nodes (default picker)
+- `<leader>ls` - Toggle sticky mode for scope boundaries (default finder)
 - When sticky mode is active:
   - `j` - Navigate to next node in the selected layer
   - `k` - Navigate to previous node in the selected layer
