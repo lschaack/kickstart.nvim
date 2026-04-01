@@ -178,6 +178,12 @@ return {
             name = 'Contexts',
           },
 
+          returns = {
+            finder = finders.query('highlights', 'keyword.return'),
+            keymap = '<leader>lr',
+            name = 'Returns',
+          },
+
           -- Composed finder: TODO comments
           todos = {
             finder = finders.filter(finders.node_type 'comment', function(node, bufnr)
