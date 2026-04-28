@@ -3,6 +3,13 @@ vim.opt.expandtab = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
+-- Format claude code output (a little broken for starting chars):
+-- Replace very first character with ' ' in case it's a dot
+-- Remove leading spaces
+-- Remove trailing spaces
+-- Replace unnecessary newlines with spaces
+vim.fn.setreg('c', 'gg^r \x80\xfd5:%s/^\\s\\+/\r:%s/\\s\\+$/\r:%s/\\v([^\\n.])\\n([^\\n])/\\1 \\2/\rgg^')
+
 -- require 'custom.plugins.ts-actions'
 require 'custom.plugins.blink'
 
@@ -12,6 +19,7 @@ vim.keymap.set('n', '<M-f>', 'f r<enter>^', { desc = 'Break on next space' })
 vim.keymap.set('c', '<M-r>', 's/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
 vim.keymap.set({ 'n', 'v' }, '<M-r>', ':s/<C-r>0//g<Left><Left>', { desc = '[R]eplace the contents of the default register' })
 vim.keymap.set('n', '<leader>jk', "oconsole.log('<C-o>p', <C-o>p)<esc>", { desc = 'Paste last yanked text [j]s style' })
+vim.keymap.set('n', '<leader>vall', 'ggVG', { desc = 'Select [v]isual [all] lines' })
 vim.keymap.set('n', '<M-j>', '<cmd>cnext<CR>', { desc = 'Go to next quickfix item' })
 vim.keymap.set('n', '<M-k>', '<cmd>cprev<CR>', { desc = 'Go to previous quickfix item' })
 

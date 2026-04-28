@@ -426,12 +426,14 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-      vim.keymap.set(
-        'n',
-        '<leader>sa',
-        "<cmd>lua require'telescope.builtin'.find_files({ find_command = {'rg', '--file', '--hidden', '-g', '!.git' }})<cr>",
-        { desc = '[S]earch [A]ll [F]iles' }
-      )
+      vim.keymap.set('n', '<leader>sa', function()
+        builtin.live_grep {
+          additional_args = function()
+            return { '--hidden', '--no-ignore', '-g', '!.git' }
+          end,
+          prompt_title = 'Live Grep (All Files)',
+        }
+      end, { desc = '[S]earch [A]ll Files by Grep' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -522,6 +524,8 @@ require('lazy').setup({
           -- Navigation keymaps
           map('gd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
           map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
+          map('gic', require('telescope.builtin').lsp_incoming_calls, '[G]oto [I]ncoming [C]alls')
+          map('goc', require('telescope.builtin').lsp_outgoing_calls, '[G]oto [O]utgoing [C]alls')
           map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
           map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
           map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
