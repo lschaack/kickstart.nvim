@@ -23,6 +23,15 @@ vim.keymap.set('n', '<leader>vall', 'ggVG', { desc = 'Select [v]isual [all] line
 vim.keymap.set('n', '<M-j>', '<cmd>cnext<CR>', { desc = 'Go to next quickfix item' })
 vim.keymap.set('n', '<M-k>', '<cmd>cprev<CR>', { desc = 'Go to previous quickfix item' })
 
+vim.keymap.set('n', '<leader>slg', function()
+  local dir = vim.fn.expand '%:p:h'
+  require('telescope.builtin').live_grep { search_dirs = { dir } }
+end, { desc = '[S]earch [l]ocal [g]rep (current file dir)' })
+
+vim.keymap.set('n', '<leader>cap', function()
+  vim.fn.setreg('+', vim.fn.expand '%:p')
+end, { desc = '[C]opy [a]bsolute [p]ath' })
+
 vim.api.nvim_create_autocmd('TermOpen', {
   group = vim.api.nvim_create_augroup('custom-term-open', { clear = true }),
   callback = function()
